@@ -1,0 +1,78 @@
+;
+; CRSF-Relay for RP2040 - half-duplex UART (8N1) on a single pin
+; GPL-3.0-or-later
+;
+; Both state machines run with 8 PIO cycles per bit.
+; OUT, SET and side-set pins of hd_tx and IN/JMP pin of hd_rx are all the same GPIO.
+;
+
+.program hd_tx
+.side_set 1 opt
+; The line is only driven while a burst is sent; otherwise it is released
+; (input with pull-up). Bytes are written to the TX FIFO by DMA.
+.wrap_target
+release:
+    set pindirs, 0                  ; let go of the line
+    pull block                      ; wait for the first byte of a burst
+    set pindirs, 1      side 1 [7]  ; take the line, one bit time idle level
+startbit:
+    set x, 7            side 0 [7]  ; start bit
+bitloop:
+    out pins, 1                     ; LSB first
+    jmp x-- bitloop            [6]
+    nop                 side 1 [6]  ; stop bit
+    mov x, status                   ; all ones if the TX FIFO is empty
+    jmp !x more
+    jmp release                [7]  ; burst done: keep idle level a bit, then release
+more:
+    pull block
+    jmp startbit
+.wrap
+
+.program hd_rx
+; Standard 8N1 receiver with framing check (raises IRQ flag 4 on a bad stop bit)
+start:
+    wait 0 pin 0                    ; start bit
+    set x, 7                   [10] ; to the middle of the first data bit
+bitloop:
+    in pins, 1
+    jmp x-- bitloop            [6]
+    jmp pin good_stop
+    irq nowait 4                    ; framing error
+    wait 1 pin 0
+    jmp start
+good_stop:
+    push noblock
+
+% c-sdk {
+#include "hardware/clocks.h"
+#include "hardware/gpio.h"
+
+static inline float hd_uart_clkdiv(uint32_t baud) {
+    return (float)clock_get_hz(clk_sys) / (8.0f * (float)baud);
+}
+
+static inline void hd_tx_program_init(PIO pio, uint sm, uint offset, uint pin, uint32_t baud) {
+    pio_sm_config c = hd_tx_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, pin, 1);
+    sm_config_set_set_pins(&c, pin, 1);
+    sm_config_set_sideset_pins(&c, pin);
+    sm_config_set_out_shift(&c, true, false, 32);
+    sm_config_set_mov_status(&c, STATUS_TX_LESSTHAN, 1);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    sm_config_set_clkdiv(&c, hd_uart_clkdiv(baud));
+    pio_sm_set_pins_with_mask(pio, sm, 1u << pin, 1u << pin);
+    pio_sm_set_pindirs_with_mask(pio, sm, 0, 1u << pin);
+    pio_sm_init(pio, sm, offset, &c);
+}
+
+static inline void hd_rx_program_init(PIO pio, uint sm, uint offset, uint pin, uint32_t baud) {
+    pio_sm_config c = hd_rx_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, pin);
+    sm_config_set_jmp_pin(&c, pin);
+    sm_config_set_in_shift(&c, true, false, 32);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    sm_config_set_clkdiv(&c, hd_uart_clkdiv(baud));
+    pio_sm_init(pio, sm, offset, &c);
+}
+%}

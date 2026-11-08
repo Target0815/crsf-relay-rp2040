@@ -1,0 +1,4 @@
+build/
+dist/
+test/test_core
+*.o
