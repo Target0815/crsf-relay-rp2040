@@ -1,11 +1,14 @@
 # Baut die Firmware bei jedem Push / Pull-Request und führt die Host-Tests aus.
-# Bei einem Tag "v*" (z. B. v1.0.5) wird zusätzlich ein Release mit der UF2-Datei angelegt.
+# Bei einem Tag "v*" (z. B. v1.0.5) bzw. einem auf GitHub veröffentlichten Release
+# wird die UF2-Datei an das Release angehängt.
 name: build
 
 on:
   push:
     branches: ["**"]
     tags: ["v*"]
+  release:
+    types: [published]
   pull_request:
   workflow_dispatch:
 
