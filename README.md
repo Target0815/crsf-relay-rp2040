@@ -8,6 +8,13 @@ Das Relais verbindet zwei CRSF-Funkstrecken: Der Empfänger der ersten Strecke s
 das Relais steuert das Sendemodul der zweiten Strecke. Alle Geräte bleiben über `elrsV3.lua`
 (bzw. TBS Agent) erreichbar, die Telemetrie läuft kollisionsfrei zurück.
 
+![Fliegen aus dem Auto mit dem CRSF-Relais](docs/relay-setup.svg)
+
+Ein typischer Einsatz: Der Sender bleibt im Auto, die Karosserie schirmt das Funksignal aber ab.
+Ein Empfänger mit dem Relais und einem zweiten Sendemodul steht deshalb draußen auf einem Stativ.
+Die kurze erste Funkstrecke reicht vom Auto bis zum Stativ, die zweite Strecke vom Stativ zum
+Flugmodell hat freie Sicht und volle Reichweite.
+
 ## Flashen
 
 1. Die aktuelle UF2-Datei unter **Releases** herunterladen (`crsf-relay-<version>-rp2040-zero.uf2`).
@@ -133,8 +140,8 @@ Bewusste Abweichungen:
    Hier ist 0x80 normale Telemetrie mit eigenem Menüpunkt (siehe oben).
 9. **IrDA** entfällt (beim WeAct-Build ohnehin nicht aktiv, der RP2040 hat kein IrDA).
 
-Auf der Hardware getestet ist der Port noch nicht. Die Protokolllogik ist mit Host-Tests geprüft
-(`test/test_core.cpp`), die Halbduplex-PIO-Programme mit einem Zyklus-Simulator (`test/pio_sim.py`).
+Die Protokolllogik ist mit Host-Tests geprüft (`test/test_core.cpp`), die Halbduplex-PIO-Programme
+mit einem Zyklus-Simulator (`test/pio_sim.py`). Beides läuft bei jedem Push automatisch.
 
 ## Bauen
 
@@ -169,6 +176,13 @@ python3 test/pio_sim.py build/rp2040-zero/hd_uart.pio.h
 | `src/hd_uart.pio` | Halbduplex-UART-Programme (Senden mit Leitungsfreigabe, Empfangen mit Rahmenprüfung) |
 | `src/main.cpp`    | Hauptschleife, Flash-Speicher, LED, ADC, Watchdog, USB-Konsole |
 | `src/config.h`    | Pins, Spannungsteiler, Versionsnummern |
+
+## Haftungsausschluss
+
+Die Benutzung erfolgt auf eigene Gefahr. Das Relais steht im Steuerweg zum Flugmodell: Prüfe vor
+jedem Flug Reichweite, Failsafe-Verhalten und Telemetrie am Boden und beachte die für dich
+geltenden Regeln für den Modellflug. Eine Gewähr für Funktion oder Eignung wird nicht übernommen
+(siehe auch GPL-3.0, Abschnitte 15 und 16).
 
 ## Lizenz
 

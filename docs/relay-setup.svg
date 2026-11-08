@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe6fb"/>
+      <stop offset="1" stop-color="#eef6fd"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f5fa8"/>
+    </marker>
+    <marker id="arrowT" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#c4581b"/>
+    </marker>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="960" height="540" rx="18" fill="url(#sky)"/>
+  <path d="M0,392 H960 V522 Q960,540 942,540 H18 Q0,540 0,522 Z" fill="#d9e8c8"/>
+  <path d="M0,392 H960" stroke="#a9c48c" stroke-width="2"/>
+  <rect x="1" y="1" width="958" height="538" rx="18" fill="none" stroke="#b7c7d8" stroke-width="2"/>
+
+  <!-- title -->
+  <text x="30" y="40" font-size="22" font-weight="bold" fill="#1d2b3a">Fliegen aus dem Auto mit dem CRSF-Relais</text>
+
+  <!-- ================= car (generic SUV) ================= -->
+  <g>
+    <!-- body -->
+    <path d="M50,368 L44,350 L44,300 Q44,276 52,262 L62,246 Q68,236 82,234 L232,232 Q250,232 262,242 L300,276 Q306,281 318,283 L370,292 Q388,296 392,310 L394,350 L390,368
+             L358,368 A36,36 0 0 0 286,368 L148,368 A36,36 0 0 0 76,368 Z"
+          fill="#5b6f84" stroke="#2e3e50" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- roof rail -->
+    <path d="M84,229 L228,227" stroke="#2e3e50" stroke-width="3" stroke-linecap="round"/>
+    <!-- greenhouse (windows) -->
+    <path d="M60,280 L60,262 L70,248 L108,246 L108,280 Z" fill="#cfe3f3" stroke="#2e3e50" stroke-width="2"/>
+    <path d="M116,246 L192,244 L192,280 L116,280 Z" fill="#cfe3f3" stroke="#2e3e50" stroke-width="2"/>
+    <path d="M200,244 L246,244 Q254,244 260,250 L288,280 L200,280 Z" fill="#cfe3f3" stroke="#2e3e50" stroke-width="2"/>
+    <!-- belt line, doors, handles -->
+    <path d="M52,288 L304,288" stroke="#2e3e50" stroke-width="1.5" opacity="0.6"/>
+    <path d="M112,282 L112,352 M196,282 L196,352 M290,284 L290,350" stroke="#2e3e50" stroke-width="1.5" opacity="0.7"/>
+    <rect x="166" y="296" width="18" height="4" rx="2" fill="#2e3e50"/>
+    <rect x="262" y="296" width="18" height="4" rx="2" fill="#2e3e50"/>
+    <!-- side skirt -->
+    <path d="M148,358 L286,358" stroke="#2e3e50" stroke-width="2" opacity="0.6"/>
+    <!-- mirror -->
+    <path d="M286,282 L300,280 L302,290 L290,292 Z" fill="#4a5c6f" stroke="#2e3e50" stroke-width="1.5"/>
+    <!-- lights -->
+    <path d="M366,298 L388,302 L390,312 L368,309 Z" fill="#fff6c8" stroke="#2e3e50" stroke-width="1.5"/>
+    <path d="M44,276 L54,276 L54,298 L44,298 Z" fill="#d84a3a" stroke="#2e3e50" stroke-width="1.5"/>
+    <!-- handset behind the front side window -->
+    <g transform="translate(232,256)">
+      <rect x="-18" y="0" width="36" height="20" rx="5" fill="#2b2b2b"/>
+      <circle cx="-9" cy="10" r="4" fill="#888"/>
+      <circle cx="9" cy="10" r="4" fill="#888"/>
+      <line x1="14" y1="1" x2="19" y2="-9" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round"/>
+    </g>
+    <!-- wheels -->
+    <circle cx="112" cy="368" r="28" fill="#232323"/><circle cx="112" cy="368" r="17" fill="#aeb7c1"/>
+    <circle cx="112" cy="368" r="5" fill="#5b6f84"/>
+    <circle cx="322" cy="368" r="28" fill="#232323"/><circle cx="322" cy="368" r="17" fill="#aeb7c1"/>
+    <circle cx="322" cy="368" r="5" fill="#5b6f84"/>
+    <text x="216" y="430" font-size="17" font-weight="bold" fill="#1d2b3a" text-anchor="middle">Sender im Auto</text>
+    <text x="216" y="452" font-size="14" fill="#33475b" text-anchor="middle">mit ELRS-Sendemodul 1</text>
+  </g>
+
+  <!-- ================= tripod with relay ================= -->
+  <g>
+    <!-- legs and mast -->
+    <line x1="560" y1="300" x2="520" y2="396" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+    <line x1="560" y1="300" x2="560" y2="398" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+    <line x1="560" y1="300" x2="600" y2="396" stroke="#555" stroke-width="5" stroke-linecap="round"/>
+    <line x1="560" y1="300" x2="560" y2="282" stroke="#555" stroke-width="6"/>
+    <!-- box with the three parts -->
+    <rect x="482" y="150" width="156" height="134" rx="10" fill="#ffffff" stroke="#2e4359" stroke-width="2.5"/>
+    <rect x="494" y="160" width="132" height="32" rx="6" fill="#e3effa" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="560" y="181" font-size="14" fill="#1d2b3a" text-anchor="middle">Empfänger 1</text>
+    <rect x="494" y="201" width="132" height="32" rx="6" fill="#fff1d6" stroke="#c48a1b" stroke-width="1.5"/>
+    <text x="560" y="222" font-size="14" font-weight="bold" fill="#1d2b3a" text-anchor="middle">Relais (RP2040)</text>
+    <rect x="494" y="242" width="132" height="32" rx="6" fill="#e3effa" stroke="#1f5fa8" stroke-width="1.5"/>
+    <text x="560" y="263" font-size="14" fill="#1d2b3a" text-anchor="middle">Sendemodul 2</text>
+    <!-- antenna of receiver 1 (towards the car) -->
+    <line x1="494" y1="176" x2="470" y2="164" stroke="#2b2b2b" stroke-width="3" stroke-linecap="round"/>
+    <!-- antenna of module 2 (towards the plane) -->
+    <line x1="626" y1="258" x2="650" y2="258" stroke="#2b2b2b" stroke-width="3"/>
+    <line x1="650" y1="258" x2="650" y2="112" stroke="#2b2b2b" stroke-width="4" stroke-linecap="round"/>
+    <text x="560" y="430" font-size="17" font-weight="bold" fill="#1d2b3a" text-anchor="middle">Stativ draußen</text>
+    <text x="560" y="452" font-size="14" fill="#33475b" text-anchor="middle">frei stehend, Antenne erhöht</text>
+  </g>
+
+  <!-- ================= plane ================= -->
+  <g transform="translate(838,110)">
+    <path d="M-70,0 Q-60,-9 -20,-9 L55,-6 Q70,-4 72,0 Q70,4 55,6 L-20,9 Q-60,9 -70,0 Z" fill="#e85d3f" stroke="#8a2f1c" stroke-width="2"/>
+    <path d="M-5,-7 L-22,-48 L2,-48 L22,-7 Z" fill="#f07a5f" stroke="#8a2f1c" stroke-width="2"/>
+    <path d="M-5,7 L-22,40 L2,40 L22,7 Z" fill="#f07a5f" stroke="#8a2f1c" stroke-width="2"/>
+    <path d="M-58,-5 L-72,-24 L-60,-24 L-46,-6 Z" fill="#f07a5f" stroke="#8a2f1c" stroke-width="2"/>
+    <path d="M-58,5 L-72,24 L-60,24 L-46,6 Z" fill="#f07a5f" stroke="#8a2f1c" stroke-width="2"/>
+    <circle cx="72" cy="0" r="3" fill="#8a2f1c"/>
+    <text x="0" y="70" font-size="17" font-weight="bold" fill="#1d2b3a" text-anchor="middle">Flugmodell</text>
+    <text x="0" y="92" font-size="14" fill="#33475b" text-anchor="middle">Empfänger 2 + Flugcontroller</text>
+  </g>
+
+  <!-- ================= radio links ================= -->
+  <!-- link 1: handset -> receiver 1 -->
+  <path d="M256,240 Q360,140 466,162" fill="none" stroke="#1f5fa8" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arrow)"/>
+  <path d="M458,176 Q370,180 262,252" fill="none" stroke="#c4581b" stroke-width="2.5" stroke-dasharray="4 5" marker-end="url(#arrowT)"/>
+  <text x="380" y="132" font-size="15" font-weight="bold" fill="#1f5fa8" text-anchor="middle">Funkstrecke 1</text>
+  <text x="380" y="150" font-size="13" fill="#33475b" text-anchor="middle">kurz, wenige Meter</text>
+
+  <!-- link 2: module 2 -> plane -->
+  <path d="M660,104 Q720,70 762,100" fill="none" stroke="#1f5fa8" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arrow)"/>
+  <path d="M760,122 Q716,138 662,124" fill="none" stroke="#c4581b" stroke-width="2.5" stroke-dasharray="4 5" marker-end="url(#arrowT)"/>
+  <text x="712" y="52" font-size="15" font-weight="bold" fill="#1f5fa8" text-anchor="middle">Funkstrecke 2</text>
+  <text x="712" y="70" font-size="13" fill="#33475b" text-anchor="middle">große Reichweite</text>
+
+  <!-- ================= legend ================= -->
+  <g transform="translate(30,478)">
+    <line x1="0" y1="0" x2="40" y2="0" stroke="#1f5fa8" stroke-width="3" stroke-dasharray="9 6" marker-end="url(#arrow)"/>
+    <text x="50" y="5" font-size="14" fill="#1d2b3a">Steuerung (Knüppel, Schalter)</text>
+    <line x1="290" y1="0" x2="330" y2="0" stroke="#c4581b" stroke-width="2.5" stroke-dasharray="4 5" marker-end="url(#arrowT)"/>
+    <text x="340" y="5" font-size="14" fill="#1d2b3a">Telemetrie und Lua-Menü zurück</text>
+  </g>
+  <text x="30" y="514" font-size="14" fill="#33475b">Im ELRS-Lua-Skript erreichbar: Sendemodul 1 · Empfänger 1 · Relais · Sendemodul 2 · Empfänger 2 · Flugcontroller</text>
+</svg>
