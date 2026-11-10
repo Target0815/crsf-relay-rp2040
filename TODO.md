@@ -1,10 +1,9 @@
 # ToDo – CRSF-Relay RP2040
 
-* Bei der Konfiguration des RC-Relay (elrsV3.lua) oben einen Hinweis auf RP2040 mit
-  Firmware-Version anzeigen.
-* Dokumentation zweisprachig (Deutsch und Englisch):
-  * README: oben eine Sprachauswahl (Deutsch / English)
-  * weitere .md-Dokumente mit Sprachkennung im Dateinamen, z. B. `ANLEITUNG.de.md` / `ANLEITUNG.en.md`
+* (derzeit nichts offen)
+
+Regel für neue Dokumente: zweisprachig, mit Sprachkennung im Dateinamen
+(z. B. `ANLEITUNG.de.md` / `ANLEITUNG.en.md`); die ToDo-Liste bleibt deutsch.
 
 ## Erledigt
 
@@ -14,3 +13,6 @@
 * 1.0.3: Relais wiederholt verlorene Parameteranfragen an Modul 2 / Empfänger 2
 * 1.0.4: ArduPilot-Passthrough (0x80) als Telemetrie mit eigenem Menüpunkt
 * 1.0.5: Wiederholung auch für den Flugcontroller (0xC8) und alle Geräte hinter dem Relais
+* 1.0.6: Menüeintrag „RP2040 Firmware“ mit Version ganz oben im Relais-Menü
+* Dokumentation zweisprachig: README.md englisch, README.de.md deutsch, Umschalter oben,
+  Grafik als `docs/relay-setup.en.svg` / `.de.svg`

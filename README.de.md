@@ -1,3 +1,5 @@
+[English](README.md) | **Deutsch**
+
 # CRSF-Relay für RP2040
 
 Portierung des **RC-Relay32** von Wilhelm Meier
@@ -8,7 +10,7 @@ Das Relais verbindet zwei CRSF-Funkstrecken: Der Empfänger der ersten Strecke s
 das Relais steuert das Sendemodul der zweiten Strecke. Alle Geräte bleiben über `elrsV3.lua`
 (bzw. TBS Agent) erreichbar, die Telemetrie läuft kollisionsfrei zurück.
 
-![Fliegen aus dem Auto mit dem CRSF-Relais](docs/relay-setup.svg)
+![Fliegen aus dem Auto mit dem CRSF-Relais](docs/relay-setup.de.svg)
 
 Ein typischer Einsatz: Der Sender bleibt im Auto, die Karosserie schirmt das Funksignal aber ab.
 Ein Empfänger mit dem Relais und einem zweiten Sendemodul steht deshalb draußen auf einem Stativ.
@@ -56,6 +58,10 @@ oder `picotool load -f -x crsf-relay-…uf2` verwenden.
 
 Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse).
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
+
+Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
+(z. B. `1.0.6`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+welcher Version.
 
 Alle Menüpunkte und Standardwerte des Originals sind vorhanden:
 CRSF Address, TX/RX Rewrite Address, TX Rewrite Name, Rewrite Name, LinkStat
@@ -140,13 +146,16 @@ Bewusste Abweichungen:
    Hier ist 0x80 normale Telemetrie mit eigenem Menüpunkt (siehe oben).
 9. **IrDA** entfällt (beim WeAct-Build ohnehin nicht aktiv, der RP2040 hat kein IrDA).
 
+Die Punkte 7 und 8 sind inzwischen auch ins Original übernommen (V17), Punkt 1 ist dort vorgeschlagen.
+
 Die Protokolllogik ist mit Host-Tests geprüft (`test/test_core.cpp`), die Halbduplex-PIO-Programme
 mit einem Zyklus-Simulator (`test/pio_sim.py`). Beides läuft bei jedem Push automatisch.
 
 ## Bauen
 
 GitHub Actions baut die Firmware bei jedem Push automatisch und führt die Tests aus
-(Download unter „Actions“ → Lauf → „Artifacts“). Ein Tag `v<version>` legt ein Release an.
+(Download unter „Actions“ → Lauf → „Artifacts“). Bei einem Tag `v<version>` oder einem auf
+GitHub veröffentlichten Release wird die UF2-Datei angehängt.
 
 Lokal: Pico SDK 2.1.1, CMake, Ninja, arm-none-eabi-gcc:
 
