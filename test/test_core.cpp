@@ -1,6 +1,7 @@
 // Host tests for the protocol core: g++ -std=c++17 -I../src test_core.cpp ../src/core.cpp
 #include "core.h"
 #include "hal.h"
+#include "config.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -177,7 +178,7 @@ int main(int argc, char**) {
         const uint32_t serial = (q[0] << 24) | (q[1] << 16) | (q[2] << 8) | q[3];
         const uint32_t hw = (q[4] << 24) | (q[5] << 16) | (q[6] << 8) | q[7];
         CHECK(serial == 1234 && hw == 4);
-        CHECK(q[12] == 36); // number of parameters
+        CHECK(q[12] == 37); // number of parameters
         CHECK(drainRelay(now).empty()); // relay disabled before state Run
     }
 
@@ -185,7 +186,7 @@ int main(int argc, char**) {
     std::map<std::string, uint8_t> index;
     {
         int folders = 0, sels = 0;
-        for (uint8_t i = 1; i <= 36; ++i) {
+        for (uint8_t i = 1; i <= 37; ++i) {
             ParamInfo pi;
             const bool ok = readParam(now, i, pi);
             CHECK(ok);
@@ -198,7 +199,7 @@ int main(int argc, char**) {
         CHECK(folders == 1);
         CHECK(sels == 19 + 6);
         ParamInfo pi;
-        CHECK(!readParam(now, 37, pi)); // out of range -> no answer
+        CHECK(!readParam(now, 38, pi)); // out of range -> no answer
         // root folder lists its children, without itself
         ParamInfo root;
         CHECK(readParam(now, 0, root));
@@ -218,6 +219,10 @@ int main(int argc, char**) {
         ParamInfo vi;
         CHECK(readParam(now, index["Supply Volt."], vi));
         CHECK(cstr(vi.rest.data(), vi.rest.size()) == "12.34V");
+        // RP2040 hint with firmware version is the first entry
+        ParamInfo fw;
+        CHECK(readParam(now, 1, fw));
+        CHECK(fw.type == 12 && fw.name == "RP2040 Firmware" && cstr(fw.rest.data(), fw.rest.size()) == FW_VERSION);
         ParamInfo ver;
         CHECK(readParam(now, index["Version(HW/SW)"], ver));
         CHECK(cstr(ver.rest.data(), ver.rest.size()) == "4:15");

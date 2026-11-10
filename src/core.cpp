@@ -537,6 +537,8 @@ void buildMenu() {
     nParams = 0;
     Param p;
     p = {}; p.type = Folder; p.name = "root"; add(p);
+    // RP2040 port: first entry, so the port and its firmware version are visible at the top
+    p = {}; p.type = Info; p.name = "RP2040 Firmware"; p.options = FW_VERSION; add(p);
     p = {}; p.type = Info; p.name = "Version(HW/SW)"; p.options = versionString; add(p);
     p = {}; p.type = Info; p.name = "Watchdog"; p.options = wdgString; add(p);
     p = {}; p.type = U8; p.name = "CRSF Address"; p.value = &settings.address; p.min = 192; p.max = 207;
