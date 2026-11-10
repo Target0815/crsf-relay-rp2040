@@ -2,6 +2,9 @@
 
 * Bei der Konfiguration des RC-Relay (elrsV3.lua) oben einen Hinweis auf RP2040 mit
   Firmware-Version anzeigen.
+* Dokumentation zweisprachig (Deutsch und Englisch):
+  * README: oben eine Sprachauswahl (Deutsch / English)
+  * weitere .md-Dokumente mit Sprachkennung im Dateinamen, z. B. `ANLEITUNG.de.md` / `ANLEITUNG.en.md`
 
 ## Erledigt
 
