@@ -41,7 +41,7 @@ jobs:
       - name: Host-Tests (Protokolllogik)
         run: |
           g++ -std=c++17 -Wall -Wextra -Wno-invalid-offsetof -fsanitize=address,undefined \
-            -Isrc test/test_core.cpp src/core.cpp -o test/test_core
+            -Isrc test/test_core.cpp src/core.cpp src/mlrs.cpp -o test/test_core
           ./test/test_core
 
       - name: Firmware bauen

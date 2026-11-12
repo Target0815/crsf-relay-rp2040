@@ -1,5 +1,6 @@
 // Host tests for the protocol core: g++ -std=c++17 -I../src test_core.cpp ../src/core.cpp
 #include "core.h"
+#include "mlrs.h"
 #include "hal.h"
 #include "config.h"
 
@@ -100,16 +101,16 @@ static std::string cstr(const uint8_t* p, size_t max, size_t* used = nullptr) {
 
 // read one parameter like elrsV3.lua does (all chunks)
 struct ParamInfo { uint8_t parent, type; std::string name; std::vector<uint8_t> rest; };
-static bool readParam(uint32_t now, uint8_t index, ParamInfo& out) {
+static bool readParam(uint32_t now, uint8_t index, ParamInfo& out, uint8_t dev = 0xCD) {
     std::vector<uint8_t> data;
     uint8_t chunk = 0;
     for (;;) {
-        core::onInputFrame(make(type::ParamRead, {0xCD, addr::Handset, index, chunk}), now);
+        core::onInputFrame(make(type::ParamRead, {dev, addr::Handset, index, chunk}), now);
         auto v = drainHandset();
         if (v.size() != 1) return false;
         const Frame& f = v[0];
         if (!f.crcOk() || f.type() != type::ParamEntry) return false;
-        if (f.b[3] != addr::Handset || f.b[4] != 0xCD || f.b[5] != index) return false;
+        if (f.b[3] != addr::Handset || f.b[4] != dev || f.b[5] != index) return false;
         const uint8_t follow = f.b[6];
         data.insert(data.end(), &f.b[7], &f.b[f.size - 1]);
         if (follow == 0) break;
@@ -132,6 +133,105 @@ static void reconnect(uint32_t& now) {
     }
     drainHandset();
 }
+
+
+// ------------------------------------------------------------------ fake mLRS TX module (mBridge, v1.4.04)
+struct FakeMlrs {
+    struct P { const char* name; uint8_t type; uint8_t val; uint16_t allowed; const char* opts; int8_t min, max; const char* unit; const char* str6; };
+    std::vector<P> params;
+    bool rxAvailable = true;
+    std::vector<std::vector<uint8_t>> sets;
+    int stores = 0, infoRequests = 0, itemRequests = 0;
+    bool mute = false;
+    FakeMlrs() {
+        params = {
+            {"Bind Phrase", 5, 0, 0xffff, "", 0, 0, "", "mlrs.0"},
+            {"Mode", 4, 1, 0x0007, "50 Hz,31 Hz,19 Hz,-,-", 0, 0, "", ""},        // 21 chars -> empty ITEM3
+            {"RF Band", 4, 2, 0x0004, "-,-,868 MHz", 0, 0, "", ""},                 // single option -> info
+            {"Tx Power", 4, 2, 0xffff, "10 mW,25 mW,50 mW,100 mW,200 mW,500 mW,1 W", 0, 0, "", ""}, // ITEM3
+            {"Tx Wifi Channel", 4, 0, 0x0000, "1,6,11", 0, 0, "", ""},             // not available -> hidden
+            {"Rx Power", 4, 3, 0xffff, "10 mW,25 mW,50 mW,100 mW", 0, 0, "", ""},
+            {"Rx FS Ch1", 1, 0, 0, "", -120, 120, "%", ""},
+            {"Rx FS Ch2", 1, uint8_t(-50), 0, "", -120, 120, "%", ""},
+        };
+    }
+    static Frame reply(uint8_t cmd, const std::vector<uint8_t>& pl) {
+        std::vector<uint8_t> v = {uint8_t(0xA0 + cmd)};
+        v.insert(v.end(), pl.begin(), pl.end());
+        v.resize(1 + mlrs::mb::payloadLen(cmd), 0);
+        return make(0x82, v, addr::Handset);
+    }
+    static void put(std::vector<uint8_t>& v, size_t pos, const char* s, size_t max) {
+        for (size_t i = 0; i < max && s[i]; ++i) v[pos + i] = uint8_t(s[i]);
+    }
+    std::vector<Frame> handle(const Frame& f) {
+        std::vector<Frame> out;
+        if (f.type() != 0x81 || f.b[0] != addr::TX || f.b[3] != 'O' || f.b[4] != 'W' || mute) return out;
+        const uint8_t cmd = f.b[5] - 0xA0;
+        const uint8_t* d = &f.b[6];
+        if (cmd == mlrs::mb::RequestInfo) {
+            ++infoRequests;
+            std::vector<uint8_t> it(24, 0);
+            it[0] = 0x04; it[1] = 0x11; // v1.4.04 = 1<<12 | 4<<6 | 4 = 0x1104
+            put(it, 4, "MATEK mR900-30 TX", 20);
+            out.push_back(reply(mlrs::mb::DeviceItemTx, it));
+            std::vector<uint8_t> ir(24, 0);
+            if (rxAvailable) { ir[0] = 0x04; ir[1] = 0x11; put(ir, 4, "MATEK mR900-30 RX", 20); }
+            out.push_back(reply(mlrs::mb::DeviceItemRx, ir));
+            std::vector<uint8_t> in(24, 0);
+            in[5] = rxAvailable ? 1 : 0;
+            in[8] = uint8_t(params.size());
+            out.push_back(reply(mlrs::mb::Info, in));
+        } else if (cmd == mlrs::mb::RequestCmd && d[0] == mlrs::mb::ParamItem) {
+            ++itemRequests;
+            const uint8_t i = d[1];
+            std::vector<uint8_t> a(24, 0);
+            if (i >= params.size()) { a[0] = 0xff; out.push_back(reply(mlrs::mb::ParamItem, a)); return out; }
+            const P& p = params[i];
+            a[0] = i; a[1] = p.type; put(a, 2, p.name, 16);
+            if (p.type == 5) put(a, 18, p.str6, 6); else a[18] = p.val;
+            out.push_back(reply(mlrs::mb::ParamItem, a));
+            std::vector<uint8_t> b(24, 0);
+            b[0] = i;
+            const size_t ol = std::strlen(p.opts);
+            if (p.type == 4) {
+                b[1] = uint8_t(p.allowed); b[2] = uint8_t(p.allowed >> 8);
+                put(b, 3, p.opts, 21);
+            } else if (p.type == 1) {
+                b[1] = uint8_t(p.min); b[3] = uint8_t(p.max); put(b, 7, p.unit, 6);
+            }
+            out.push_back(reply(mlrs::mb::ParamItem2, b));
+            if (p.type == 4 && ol >= 21) {
+                std::vector<uint8_t> c(24, 0);
+                c[0] = i; put(c, 1, p.opts + 21, 23);
+                out.push_back(reply(mlrs::mb::ParamItem3_4, c));
+                if (ol >= 44) {
+                    std::vector<uint8_t> e(24, 0);
+                    e[0] = uint8_t(i + 128); put(e, 1, p.opts + 44, 23);
+                    out.push_back(reply(mlrs::mb::ParamItem3_4, e));
+                }
+            }
+        } else if (cmd == mlrs::mb::ParamSet) {
+            sets.push_back({d[0], d[1]});
+            if (d[0] < params.size()) params[d[0]].val = d[1];
+        } else if (cmd == mlrs::mb::ParamStore) {
+            ++stores;
+        }
+        return out;
+    }
+    // one radio period: channels in, relay out, module answers back
+    void step(uint32_t& now) {
+        core::onInputFrame(channelsFrame(1000), now);
+        for (auto& f : drainRelay(now)) {
+            if (f.type() == type::Ping) {
+                auto info = make(type::Info, {addr::Handset, addr::TX, 'M','a','t','e','k',' ','m','R','9','0','0','-','3','0',0,
+                                              'm','L','R','S', 0,0,0,0, 0,0,0,0, 0, 0});
+                core::onRelayFrame(info, now);
+            }
+            for (auto& r : handle(f)) core::onRelayFrame(r, now);
+        }
+    }
+};
 
 // ------------------------------------------------------------------ tests
 int main(int argc, char**) {
@@ -180,7 +280,7 @@ int main(int argc, char**) {
         const uint32_t serial = (q[0] << 24) | (q[1] << 16) | (q[2] << 8) | q[3];
         const uint32_t hw = (q[4] << 24) | (q[5] << 16) | (q[6] << 8) | q[7];
         CHECK(serial == 1234 && hw == 4);
-        CHECK(q[12] == 31); // number of parameters
+        CHECK(q[12] == 13); // number of parameters
         CHECK(drainRelay(now).empty()); // relay disabled before state Run
     }
 
@@ -188,7 +288,7 @@ int main(int argc, char**) {
     std::map<std::string, uint8_t> index;
     {
         int folders = 0, sels = 0;
-        for (uint8_t i = 1; i <= 31; ++i) {
+        for (uint8_t i = 1; i <= 13; ++i) {
             ParamInfo pi;
             const bool ok = readParam(now, i, pi);
             CHECK(ok);
@@ -198,19 +298,17 @@ int main(int argc, char**) {
             if (pi.type == 9) ++sels;
             if (stub::verbose) printf("  %2u parent %2u type %2u %s\n", i, pi.parent, pi.type, pi.name.c_str());
         }
-        CHECK(folders == 1);
-        CHECK(sels == 19 + 5); // LinkStat, Half-Duplex, Baudrate, Inverted, Own Telemetry
+        CHECK(folders == 0); // 1.0.9: no telemetry folder any more
+        CHECK(sels == 7); // LinkStat, Telemetry, ArduPilot, Half-Duplex, Baudrate, Inverted, Own Telemetry
         ParamInfo pi;
-        CHECK(!readParam(now, 32, pi)); // out of range -> no answer
+        CHECK(!readParam(now, 14, pi)); // out of range -> no answer
         // root folder lists its children, without itself
         ParamInfo root;
         CHECK(readParam(now, 0, root));
         CHECK(root.type == 11 && root.rest.back() == 0xff);
         CHECK(root.rest[0] == 1);
-        // telemetry folder has 20 children (incl. ArduPilot)
-        ParamInfo tf;
-        CHECK(readParam(now, index["Telemetry forwarding"], tf));
-        CHECK(tf.rest.size() == 20 + 1);
+        CHECK(index.count("Telemetry forwarding") == 0 && index.count("Battery") == 0);
+        CHECK(index["Telemetry"] == 7 && index["Forward Rate"] == 8 && index["ArduPilot"] == 9);
         // selection layout: options, value, min, max, default, unit
         ParamInfo ls;
         CHECK(readParam(now, index["LinkStat"], ls));
@@ -448,17 +546,41 @@ int main(int argc, char**) {
         h = drainHandset();
         CHECK(h.size() == 2 && h[0].type() == 0x08);
 
-        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Battery"], 2}), now);
+        // 1.0.9: link statistics frames of the module (0x1C/0x1D) only with LinkStat = Forward
+        auto lrx = make(type::LinkStatsRx, {1, 2, 3, 4, 5});
+        for (int i = 0; i < 2; ++i) core::onRelayFrame(lrx, now);
+        CHECK(drainHandset().empty()); // LinkStat = Transform
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["LinkStat"], 1}), now);
+        core::tick(now += 40'000);
+        drainHandset();
+        for (int i = 0; i < 2; ++i) core::onRelayFrame(lrx, now);
+        h = drainHandset();
+        CHECK(h.size() == 1 && h[0].type() == type::LinkStatsRx);
+
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["LinkStat"], 3}), now);
         core::tick(now += 40'000);
         drainHandset();
+        for (int i = 0; i < 2; ++i) core::onRelayFrame(lrx, now);
+        CHECK(drainHandset().empty()); // LinkStat = Tunnel
         for (int i = 0; i < 2; ++i) core::onRelayFrame(bat, now);
         for (int i = 0; i < 2; ++i) core::onRelayFrame(linkFrame(), now);
         h = drainHandset();
         CHECK(h.size() == 2);
-        CHECK(h[0].type() == type::PassThru && h[0].b[3] == addr::Handset && h[0].b[4] == 0xCD);
-        CHECK(h[0].b[5] == (6200 >> 8) && h[0].b[6] == (6200 & 0xff) && h[0].b[7] == 0x02 && h[0].b[8] == 0x08);
+        CHECK(h[0].type() == 0x08);
+        CHECK(h[1].type() == type::PassThru && h[1].b[3] == addr::Handset && h[1].b[4] == 0xCD);
+        CHECK(h[1].b[5] == (6200 >> 8) && h[1].b[6] == (6200 & 0xff));
         CHECK(h[1].b[7] == 0x01 && h[1].b[8] == type::Link && h[1].crcOk());
+        // "Telemetry" = Off stops all telemetry types, link statistics follow LinkStat
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Telemetry"], 0}), now);
+        core::tick(now += 40'000);
+        drainHandset();
+        for (int i = 0; i < 4; ++i) core::onRelayFrame(bat, now);
+        for (int i = 0; i < 2; ++i) core::onRelayFrame(linkFrame(), now);
+        h = drainHandset();
+        CHECK(h.size() == 1 && h[0].type() == type::PassThru);
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Telemetry"], 1}), now);
+        core::tick(now += 40'000);
+        drainHandset();
         // unlisted telemetry type (0x01) is not forwarded
         core::onRelayFrame(make(0x01, {1, 2, 3}), now);
         core::onRelayFrame(make(0x01, {1, 2, 3}), now);
@@ -628,6 +750,7 @@ int main(int argc, char**) {
         CHECK(offsetof(Settings, ardupilot_mode) == 59);
         CHECK(m.relay_inverted == 0); // 1.0.8 field keeps its default
         CHECK(offsetof(Settings, relay_inverted) == 60);
+        CHECK(m.telemetry_mode == 1 && offsetof(Settings, telemetry_mode) == 61); // 1.0.9 field: default Forward
     }
 
     // --- 1.0.8: values without menu entry are fixed, stored values are ignored
@@ -638,6 +761,132 @@ int main(int argc, char**) {
         s.fixHidden();
         CHECK(s.failsafe_mode == 0 && s.address == 0xCD && s.tx_rewrite_address == 0xCE && s.rewrite_name == 0);
         CHECK(s.tempOffTelemetry == 30 && s.relay_inverted == 1);
+    }
+
+    // --- 1.0.9: mLRS parameter proxy
+    {
+        reconnect(now);
+        CHECK(!mlrs::active());
+        FakeMlrs m;
+        // mLRS statistics (0x82, first byte 0x65) identify the module
+        std::vector<uint8_t> st(19, 0); st[0] = 0x65;
+        core::onRelayFrame(make(0x82, st, addr::Handset), now);
+        CHECK(mlrs::active());
+        CHECK(drainHandset().empty()); // mBridge frames are not passed to the radio
+        for (int i = 0; i < 200 && !mlrs::loaded(); ++i) m.step(now);
+        CHECK(mlrs::loaded());
+        CHECK(mlrs::paramsLoaded() == 8 && m.infoRequests == 1 && m.itemRequests == 8);
+        const uint8_t N = mlrs::fieldCount();
+        CHECK(N == 14); // TX, RX, 3 common, Tx folder + 2, Rx folder + 1, Failsafe folder + 2, Save
+        // device info of the module reports the proxy parameters
+        drainHandset();
+        core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now);
+        m.step(now);
+        auto h = drainHandset();
+        bool seen = false;
+        for (auto& f : h) {
+            if (f.type() == type::Info && f.b[4] == 0xCE) {
+                size_t used;
+                CHECK(cstr(&f.b[5], 30, &used) == "Matek mR900-30");
+                CHECK(f.b[5 + used + 12] == N && f.crcOk());
+                seen = true;
+            }
+        }
+        CHECK(seen);
+        for (int i = 0; i < 50; ++i) m.step(now); // let a ping-triggered reload finish
+        CHECK(mlrs::loaded());
+        drainHandset();
+        // read all fields like the ELRS Lua script
+        std::map<std::string, std::pair<uint8_t, ParamInfo>> fld;
+        for (uint8_t i = 1; i <= N; ++i) {
+            ParamInfo pi;
+            CHECK(readParam(now, i, pi, 0xCE));
+            fld[pi.name] = {i, pi};
+        }
+        CHECK(cstr(fld["TX"].second.rest.data(), 40) == "MATEK mR900-30 TX v1.4.04");
+        CHECK(cstr(fld["RX"].second.rest.data(), 40) == "MATEK mR900-30 RX v1.4.04");
+        CHECK(fld["Bind Phrase"].second.type == 12 && cstr(fld["Bind Phrase"].second.rest.data(), 8) == "mlrs.0");
+        auto& mode = fld["Mode"].second;
+        size_t used;
+        CHECK(mode.type == 9 && cstr(mode.rest.data(), 60, &used) == "50 Hz;31 Hz;19 Hz;-;-");
+        CHECK(mode.rest[used] == 1 && mode.rest[used + 2] == 4);
+        CHECK(fld["RF Band"].second.type == 12 && cstr(fld["RF Band"].second.rest.data(), 20) == "868 MHz");
+        CHECK(fld["Power"].second.type == 9); // "Tx Power" / "Rx Power" in their folders
+        CHECK(fld["Wifi Channel"].second.type == (12 | 0x80)); // not available: hidden
+        auto& ch2 = fld["Ch2"].second;
+        CHECK(ch2.type == 1 && int8_t(ch2.rest[0]) == -50 && int8_t(ch2.rest[1]) == -120 && ch2.rest[2] == 120);
+        CHECK(cstr(&ch2.rest[4], 4) == "%");
+        CHECK(fld["Failsafe"].second.type == 11 && fld["Failsafe"].second.parent == fld["Rx"].first);
+        CHECK(fld["Ch1"].second.parent == fld["Failsafe"].first);
+        CHECK(fld["Save"].second.type == 13 && fld["Save"].second.rest[0] == 0);
+        ParamInfo root;
+        CHECK(readParam(now, 0, root, 0xCE));
+        CHECK(root.type == 11 && root.rest[0] == 1 && root.rest[1] == 2 && root.rest.back() == 0xff);
+        // writes
+        const uint8_t iMode = fld["Mode"].first, iCh1 = fld["Ch1"].first, iSave = fld["Save"].first;
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iMode, 2}), now);
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iMode, 3}), now);   // "-": rejected
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iCh1, uint8_t(-80)}), now);
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iCh1, 127}), now);  // out of range
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, fld["RF Band"].first, 0}), now); // info
+        for (int i = 0; i < 5; ++i) m.step(now);
+        CHECK(m.sets.size() == 2);
+        CHECK(m.sets.size() == 2 && m.sets[0][0] == 1 && m.sets[0][1] == 2 && m.sets[1][0] == 6 && m.sets[1][1] == uint8_t(-80));
+        drainHandset();
+        ParamInfo pm;
+        CHECK(readParam(now, iMode, pm, 0xCE));
+        cstr(pm.rest.data(), 60, &used);
+        CHECK(pm.rest[used] == 2);
+        // save: store, command stays "executing" until the list was reloaded
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iSave, 1}), now);
+        for (int i = 0; i < 3; ++i) m.step(now);
+        CHECK(m.stores == 1);
+        drainHandset();
+        ParamInfo sv;
+        CHECK(readParam(now, iSave, sv, 0xCE));
+        CHECK(sv.rest[0] == 2 && cstr(&sv.rest[2], 20) == "saving...");
+        const int ir = m.infoRequests;
+        for (int i = 0; i < 400; ++i) m.step(now); // > 3 s dead time + reload
+        CHECK(m.infoRequests == ir + 1);
+        drainHandset();
+        CHECK(readParam(now, iSave, sv, 0xCE));
+        CHECK(sv.rest[0] == 0);
+        // without receiver: Rx parameters hidden, RX info "not connected"
+        m.rxAvailable = false;
+        for (int i = 0; i < 300; ++i) m.step(now); // repeated pings within 3 s of a load do not reload
+        core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now);
+        for (int i = 0; i < 400; ++i) m.step(now);
+        ParamInfo rx, c1, rf;
+        drainHandset();
+        CHECK(readParam(now, fld["RX"].first, rx, 0xCE));
+        CHECK(cstr(rx.rest.data(), 30) == "not connected");
+        CHECK(readParam(now, iCh1, c1, 0xCE) && (c1.type & 0x80));
+        CHECK(readParam(now, fld["Rx"].first, rf, 0xCE) && rf.name == "Rx (no receiver)");
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iCh1, 10}), now); // rejected
+        for (int i = 0; i < 3; ++i) m.step(now);
+        CHECK(m.sets.size() == 2);
+        // module answers stop: retries, then "failed", later a new attempt
+        m.mute = true;
+        core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now);
+        for (int i = 0; i < 1500; ++i) m.step(now);
+        CHECK(mlrs::retries() > 0 && std::string(mlrs::stateName()) != "loading");
+        m.mute = false;
+        for (int i = 0; i < 1000 && std::string(mlrs::stateName()) != "loaded"; ++i) m.step(now);
+        CHECK(std::string(mlrs::stateName()) == "loaded");
+        // other TX module (ELRS) at the same address: proxy off, requests are forwarded again
+        drainHandset();
+        core::onRelayFrame(make(type::Info, {addr::Handset, addr::TX, 'B','a','n','d','i','t',0,
+                                             'E','L','R','S', 0,0,0,0, 0,0,0,0, 20, 0}), now);
+        CHECK(!mlrs::active());
+        h = drainHandset();
+        CHECK(h.size() == 1);
+        if (h.size() == 1) CHECK(h[0].b[h[0].size - 3] == 20); // parameter count unchanged
+        drainRelay(now, 3);
+        core::onInputFrame(make(type::ParamRead, {0xCE, addr::Handset, 1, 0}), now);
+        CHECK(drainHandset().empty());
+        bool fwd = false;
+        for (auto& f : drainRelay(now, 2)) if (f.type() == type::ParamRead && f.b[3] == addr::TX) fwd = true;
+        CHECK(fwd);
     }
 
     // --- settings plausibility

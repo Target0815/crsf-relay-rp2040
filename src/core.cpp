@@ -13,6 +13,7 @@
 #include "core.h"
 #include "hal.h"
 #include "config.h"
+#include "mlrs.h"
 
 #include <cstdio>
 #include <cstring>
@@ -321,8 +322,23 @@ void rewriteName(Frame& f) {
     }
 }
 
+// 1.0.9: device info of an mLRS TX module: report the parameters of the mLRS proxy
+void patchMlrsInfo(Frame& f) {
+    if (f.type() != type::Info) return;
+    uint8_t i = idx::payload;
+    while (i < f.size - 1 && f.b[i] != 0) ++i;
+    ++i; // serial number follows the name
+    if (i + 14 > f.size - 1) return;
+    const bool isMlrs = f.b[i] == 'm' && f.b[i + 1] == 'L' && f.b[i + 2] == 'R' && f.b[i + 3] == 'S';
+    mlrs::onDeviceInfo(isMlrs, gNow);
+    if (!isMlrs) return;
+    f.b[i + 12] = mlrs::fieldCount();
+    f.fixCrc();
+}
+
 void rewriteIncoming(Frame f) {
     if (f.b[idx::src] == addr::TX) {
+        patchMlrsInfo(f);
         f.b[idx::src] = txAddr;
         rewriteName(f);
     } else if (f.b[idx::src] == addr::RX) {
@@ -438,6 +454,10 @@ void handleArduPilot(const Frame& f) {
 }
 
 void handleIncoming(const Frame& f) {
+    if (f.type() == type::MBridgeToRadio) { // 1.0.9: mLRS TX module behind the relay
+        mlrs::onModuleFrame(f, gNow);
+        return;
+    }
     if (f.type() == type::ArduPilot) {
         handleArduPilot(f);
         return;
@@ -535,18 +555,19 @@ uint8_t add(const Param& p) {
     return uint8_t(nParams - 1);
 }
 
-template<uint8_t T>
-bool fwdCb(uint8_t v) {
-    relay::fwdMode[T] = v;
-    return true;
-}
-
-template<uint8_t T>
-void addForward(uint8_t parent, const char* name) {
-    Param p;
-    p.parent = parent; p.type = Sel; p.name = name; p.options = "Off;Forward;Tunnel";
-    p.value = &settings.telemetryMode[T]; p.min = 0; p.max = 2; p.cb = &fwdCb<T>;
-    add(p);
+// 1.0.9: one switch for all telemetry types instead of one entry per type (menu variant B).
+// Link statistics frames of the module (0x1C/0x1D, e.g. sent by mLRS) belong to "LinkStat":
+// they are passed on only with LinkStat = Forward, otherwise they would duplicate the
+// transformed values.
+void applyTelemetryModes() {
+    // the telemetry types of the former per-type menu (original list)
+    static constexpr uint8_t types[] = {0x02, 0x03, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+                                        0x10, 0x1e, 0x1f, 0x21, 0x22};
+    for (auto& m : relay::fwdMode) m = 0;
+    for (auto t : types) relay::fwdMode[t] = settings.telemetry_mode;
+    const uint8_t link = (settings.link_stat_mode == 1) ? settings.telemetry_mode : 0;
+    relay::fwdMode[type::LinkStatsRx] = link;
+    relay::fwdMode[type::LinkStatsTx] = link;
 }
 
 void buildMenu() {
@@ -562,31 +583,12 @@ void buildMenu() {
     p = {}; p.type = Info; p.name = "Supply Volt."; p.options = voltString; add(p);
     p = {}; p.type = Info; p.name = "Chip Temp."; p.options = tempString; add(p);
     p = {}; p.type = Sel; p.name = "LinkStat"; p.options = "Off;Forward;Transform;Tunnel"; p.value = &settings.link_stat_mode; p.max = 3;
-    p.cb = [](uint8_t v) { relay::linkStatMode = v; return true; }; add(p);
-
-    p = {}; p.type = Folder; p.name = "Telemetry forwarding";
-    const uint8_t parent = add(p);
-    p = {}; p.parent = parent; p.type = U8; p.name = "Forward Rate"; p.value = &settings.telemetry_rate; p.min = 1; p.max = 10;
+    p.cb = [](uint8_t v) { relay::linkStatMode = v; applyTelemetryModes(); return true; }; add(p);
+    p = {}; p.type = Sel; p.name = "Telemetry"; p.options = "Off;Forward"; p.value = &settings.telemetry_mode; p.max = 1;
+    p.cb = [](uint8_t) { applyTelemetryModes(); return true; }; add(p);
+    p = {}; p.type = U8; p.name = "Forward Rate"; p.value = &settings.telemetry_rate; p.min = 1; p.max = 10;
     p.cb = [](uint8_t a) { relay::forwardRate = a; return true; }; add(p);
-    addForward<0x02>(parent, "GPS");
-    addForward<0x03>(parent, "GPS Time");
-    addForward<0x06>(parent, "GPS Ext");
-    addForward<0x07>(parent, "Vario");
-    addForward<0x08>(parent, "Battery");
-    addForward<0x09>(parent, "Barometer");
-    addForward<0x0a>(parent, "Airspeed");
-    addForward<0x0b>(parent, "Heartbeat");
-    addForward<0x0c>(parent, "RPM");
-    addForward<0x0d>(parent, "Temperature");
-    addForward<0x0e>(parent, "Voltages");
-    addForward<0x10>(parent, "VTX Telemetry");
-    addForward<0x1c>(parent, "Link RX");
-    addForward<0x1d>(parent, "Link TX");
-    addForward<0x1e>(parent, "Attitude");
-    addForward<0x1f>(parent, "MAVLink FC");
-    addForward<0x21>(parent, "Flight Mode");
-    addForward<0x22>(parent, "ESP Now");
-    p = {}; p.parent = parent; p.type = Sel; p.name = "ArduPilot"; p.options = "Off;Forward;Tunnel";
+    p = {}; p.type = Sel; p.name = "ArduPilot"; p.options = "Off;Forward;Tunnel";
     p.value = &settings.ardupilot_mode; p.max = 2;
     p.cb = [](uint8_t v) { relay::apMode = v; return true; }; add(p);
 
@@ -758,6 +760,7 @@ void analyzeInput(const Frame& f, uint32_t now) {
         relay::disableTelemetryWithAutoOn(now);
         if (f.size >= 6) {
             const uint8_t dest = f.b[idx::dest];
+            if (dest == addr::Broadcast || dest == relay::txAddr) mlrs::onPing(now);
             if (dest == addr::Broadcast || dest == ownAddress) {
                 sendDeviceInfo(f.b[idx::src]);
                 traceRequest(f, false);
@@ -770,6 +773,9 @@ void analyzeInput(const Frame& f, uint32_t now) {
         if (f.size >= 8 && f.b[idx::dest] == ownAddress) {
             traceRequest(f, true);
             sendParameterInfo(f.b[idx::src], f.b[5], f.b[6]);
+        } else if (f.size >= 8 && f.b[idx::dest] == relay::txAddr && mlrs::active()) {
+            traceRequest(f, true); // 1.0.9: answered by the mLRS proxy
+            mlrs::paramRead(f.b[idx::src], f.b[idx::dest], f.b[5], f.b[6]);
         } else {
             traceRequest(f, false);
             relay::forwardPacket(f);
@@ -782,6 +788,9 @@ void analyzeInput(const Frame& f, uint32_t now) {
             const uint8_t n = uint8_t(f.length() - 5); // value bytes
             traceRequest(f, true);
             setParameterValue(f.b[5], &f.b[6], n);
+        } else if (f.size >= 8 && f.b[idx::dest] == relay::txAddr && mlrs::active()) {
+            traceRequest(f, true); // 1.0.9: mLRS proxy
+            mlrs::paramWrite(f.b[5], &f.b[6], uint8_t(f.length() - 5), now);
         } else {
             traceRequest(f, false);
             relay::forwardPacket(f);
@@ -913,6 +922,7 @@ void ownTelemetry(uint32_t now) {
 // ---------------------------------------------------------------- public API
 void init(uint32_t now) {
     relay::enabled = false; // like the original (since 2026-11-08): relay active only in state Run
+    mlrs::init({&sendToHandset, &relay::enqueueModule, &hal::log});
     settings.fixHidden();   // 1.0.8: values without menu entry are fixed, stored values are ignored
     relay::txAddr = settings.tx_rewrite_address;
     relay::rxAddr = settings.rx_rewrite_address;
@@ -946,6 +956,7 @@ void onRelayFrame(const Frame& f, uint32_t now) {
 
 void tick(uint32_t now) {
     relay::tick(now);
+    mlrs::tick(now, relay::enabled);
     fsm(now);
     ownTelemetry(now);
 }

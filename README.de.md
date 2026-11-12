@@ -61,14 +61,20 @@ Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.8`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.0.9`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
-Menü (seit 1.0.8): Info-Block (RP2040 Firmware, Watchdog, Total Retries, Supply Volt.,
-Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), Ordner „Telemetry forwarding“
-(Forward Rate + Off/Forward/Tunnel je Sensortyp), Half-Duplex,
-Baudrate (400k/420k/460k/921k/1,87M), **Inverted** (Off/On), Own Telemetry.
+Menü (seit 1.0.9): Info-Block (RP2040 Firmware, Watchdog, Total Retries, Supply Volt.,
+Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), **Telemetry** (Off/Forward), Forward Rate,
+ArduPilot (Off/Forward/Tunnel), Half-Duplex, Baudrate (400k/420k/460k/921k/1,87M),
+**Inverted** (Off/On), Own Telemetry.
+
+* **LinkStat** regelt alle Linkstatistiken von Modul 2: 0x14 wie eingestellt, die Frames 0x1C/0x1D
+  (schickt z. B. mLRS) werden nur bei „Forward“ weitergegeben, sonst kämen die umgewandelten Werte doppelt.
+* **Telemetry** ersetzt den Ordner „Telemetry forwarding“ des Originals (je Sensortyp ein Eintrag,
+  bis 1.0.8): alle Telemetrietypen dieser Liste werden weitergegeben oder nicht. Einzelne
+  Sensortypen zu tunneln ist nicht mehr möglich.
 
 Seit 1.0.8 stehen folgende Menüpunkte des Originals nicht mehr im Menü; ihre Werte sind fest auf
 die Standardwerte gesetzt (gespeicherte Werte älterer Versionen werden ignoriert): Version(HW/SW),
@@ -77,7 +83,7 @@ CRSF Address (205), TX/RX Rewrite Address (206/207), TX Rewrite Name, Rewrite Na
 sein eigenes Failsafe)**, Telem. Off Dur. (30 s). Die Einstellung „Hold“ des Originals sendete die
 letzten Kanalwerte weiter und verhinderte so das Failsafe des Modells.
 
-Neu im Ordner „Telemetry forwarding“:
+Neu:
 
 * **ArduPilot** (Off/Forward/Tunnel, Standard Forward): ArduPilot-Passthrough-Telemetrie
   (CRSF-Typ 0x80, z. B. für Yaapu). Sie wird während eines Lua-Zugriffs wie alle Telemetrie
@@ -104,11 +110,19 @@ mLRS-Empfänger im Modell.
 * mLRS erwartet CRSF bei 400k/921k/1,87M **invertiert**, nicht invertiert nur mit 416 666 Baud.
   Also entweder „Baudrate“ = 420k mit „Inverted“ = Off oder 400k/921k mit „Inverted“ = On.
 * Der mLRS-TX erkennt Baudrate und Polarität nur ca. 6 s nach dem Einschalten. Er muss in dieser
-  Zeit Kanäle vom Relais bekommen: erst die Funke einschalten, dann den mLRS-TX.
-* Empfohlen: LinkStat = Transform, im Ordner „Telemetry forwarding“ Link RX und Link TX auf Off
-  (diese Frames schickt der mLRS-TX selbst). Die Daten des Flugcontrollers (GPS, Akku, Lage,
-  Flugmodus …) erzeugt der mLRS-TX aus MAVLink, sie kommen als normale Sensoren an.
-* mLRS-Parameter lassen sich über das Relais noch nicht ändern (CLI oder Display des mLRS-TX).
+  Zeit Kanäle vom Relais bekommen: erst die Funke einschalten, dann den Relais-Kasten (Relais und
+  mLRS-TX gemeinsam).
+* Empfohlen: LinkStat = Transform. Die Daten des Flugcontrollers (GPS, Akku, Lage, Flugmodus …)
+  erzeugt der mLRS-TX aus MAVLink, sie kommen als normale Sensoren an.
+* **mLRS-Parameter im ELRS-Lua-Skript** (1.0.9, ab mLRS v1.4.04): Der mLRS-TX erscheint in der
+  Geräteliste des ELRS-Lua-Skripts (z. B. „Matek mR900-30“). Das Relais lädt seine Parameter im
+  Hintergrund per mBridge (das Protokoll des mLRS-Lua-Skripts) und zeigt sie dort an: Name/Version
+  von TX und RX, allgemeine Parameter, Ordner „Tx“ und „Rx“ (mit „Failsafe“) und den Befehl
+  **Save**. Änderungen wirken wie im mLRS-Lua-Skript erst nach „Save“; danach lädt das Relais die
+  Liste neu. Rx-Parameter erscheinen nur, solange der mLRS-Empfänger verbunden ist. Nur lesbar:
+  Bind Phrase (das ELRS-Lua-Skript kann keinen Text bearbeiten) und Parameter mit nur einem
+  möglichen Wert. Zeigt das Gerät „loading“, das Lua-Skript verlassen und neu öffnen.
+  Status in der USB-Konsole (`s`).
 
 ## USB-Konsole
 
@@ -173,6 +187,8 @@ Bewusste Abweichungen:
 11. **TFPS bei LinkStat = Transform** (1.0.8): Bis 1.0.7 wurde der RF-Modus der
     Linkstatistik in das Feld für die Paketrate kopiert; EdgeTX zeigte so z. B. 310 Hz für den mLRS-31-Hz-Modus.
     Bekannte Modi werden jetzt umgerechnet (CRSF 4/50/150/250 Hz, mLRS 19/31/111 Hz), unbekannte ergeben 0.
+12. **Ein Telemetrie-Schalter statt Ordner** (1.0.9), siehe „Menü“.
+13. **mLRS-Parameter-Proxy** (1.0.9), siehe „mLRS als Link 2“.
 
 Die Punkte 7 und 8 sind inzwischen auch ins Original übernommen (V17), Punkt 1 ist dort vorgeschlagen.
 
@@ -209,6 +225,7 @@ python3 test/pio_sim.py build/rp2040-zero/hd_uart.pio.h
 |-------|--------|
 | `src/crsf.h`      | CRSF-Konstanten, CRC, Frame-Builder, Stream-Parser, Queue |
 | `src/core.cpp`    | Relais-Logik, Menü, Geräteinfo, Zustandsmaschine (hardwareunabhängig) |
+| `src/mlrs.cpp`    | mLRS-Parameter-Proxy (mBridge ↔ ELRS-Parameterprotokoll) |
 | `src/ports.cpp`   | UART0/UART1 mit IRQ-Empfang und DMA-Senden, PIO-Halbduplex |
 | `src/hd_uart.pio` | Halbduplex-UART-Programme (Senden mit Leitungsfreigabe, Empfangen mit Rahmenprüfung) |
 | `src/main.cpp`    | Hauptschleife, Flash-Speicher, LED, ADC, Watchdog, USB-Konsole |

@@ -21,11 +21,13 @@ struct Settings {
     uint8_t telemetry_rate;
     uint8_t tempOffTelemetry;   // seconds
     uint8_t own_telemetry;      // new: send own voltage/temperature
-    uint8_t telemetryMode[crsf::type::Ping]; // 0=Off 1=Forward 2=Tunnel
+    uint8_t telemetryMode[crsf::type::Ping]; // up to 1.0.8: 0=Off 1=Forward 2=Tunnel per type (unused since 1.0.9)
     // ---- added in 1.0.4 (keep new fields at the end: older flash data is migrated)
     uint8_t ardupilot_mode;     // type 0x80 passthrough: 0=Off 1=Forward 2=Tunnel
     // ---- added in 1.0.8
     uint8_t relay_inverted;     // relay side polarity: 0=normal 1=inverted
+    // ---- added in 1.0.9
+    uint8_t telemetry_mode;     // all telemetry types: 0=Off 1=Forward (replaces telemetryMode[])
 
     void defaults() {
         std::memset(this, 0, sizeof(*this));
@@ -44,6 +46,7 @@ struct Settings {
         for (auto& m : telemetryMode) m = 1;
         ardupilot_mode     = 1;
         relay_inverted     = 0;
+        telemetry_mode     = 1;
     }
     // range check after loading from flash
     // 1.0.8: these values have no menu entry any more and are fixed to their defaults
@@ -69,7 +72,7 @@ struct Settings {
         if (telemetry_rate < 1 || telemetry_rate > 10) return false;
         if (tempOffTelemetry < 1 || tempOffTelemetry > 60) return false;
         for (auto m : telemetryMode) if (m > 2) return false;
-        if (ardupilot_mode > 2 || relay_inverted > 1) return false;
+        if (ardupilot_mode > 2 || relay_inverted > 1 || telemetry_mode > 1) return false;
         return true;
     }
 };

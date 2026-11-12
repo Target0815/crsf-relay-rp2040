@@ -45,6 +45,8 @@ constexpr uint8_t RadioID     = 0x3A;
 constexpr uint8_t PassThru    = 0x7F;
 constexpr uint8_t Last        = 0x80; // ArduPilot
 constexpr uint8_t ArduPilot   = 0x80; // passthrough telemetry, no extended header
+constexpr uint8_t MBridgeToModule = 0x81; // mLRS (1.0.9), radio -> module, sync 0xEE
+constexpr uint8_t MBridgeToRadio  = 0x82; // mLRS (1.0.9), module -> radio
 }
 
 namespace idx {
@@ -83,7 +85,7 @@ struct Frame {
     // extended frames carry dest/src addresses (as in the original: size >= 6)
     // RP2040 port: 0x80 (ArduPilot) has no dest/src addresses and is telemetry
     bool extended() const {
-        return (size >= 6) && (b[idx::type] >= type::Ping) && (b[idx::type] != type::ArduPilot);
+        return (size >= 6) && (b[idx::type] >= type::Ping) && (b[idx::type] < type::ArduPilot);
     }
     // recompute CRC after the frame was modified in place
     void fixCrc() {
@@ -135,7 +137,7 @@ private:
 };
 
 // Byte stream to frames, with resynchronisation.
-// Accepted start bytes as in the original: 0xC8, 0xEA, 0xEC (RadioMaster ERS sensors)
+// Accepted start bytes as in the original: 0xC8, 0xEA, 0xEC (RadioMaster ERS sensors), and 0xEE
 class Parser {
 public:
     void push(uint8_t c) {
@@ -150,7 +152,10 @@ public:
             const uint8_t len = buf_[1];
             if ((len < MinLength) || (len > MaxLength)) { drop(1); continue; }
             if (n_ < 3) return false;
-            if (buf_[2] > type::Last) { drop(1); continue; }
+            if (buf_[2] > type::Last && buf_[2] != type::MBridgeToModule && buf_[2] != type::MBridgeToRadio) {
+                drop(1);
+                continue;
+            }
             const uint8_t total = uint8_t(len + 2);
             if (n_ < total) return false;
             if (crc8(&buf_[2], len - 1) == buf_[total - 1]) {
@@ -171,7 +176,7 @@ public:
     uint32_t crcErrors = 0;
 private:
     static bool validStart(uint8_t s) {
-        return (s == SYNC) || (s == addr::Handset) || (s == addr::RX);
+        return (s == SYNC) || (s == addr::Handset) || (s == addr::RX) || (s == addr::TX); // 0xEE: mBridge (1.0.9)
     }
     void drop(uint8_t k) {
         if (k >= n_) { n_ = 0; return; }

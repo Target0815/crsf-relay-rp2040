@@ -13,6 +13,7 @@ pico_sdk_init()
 add_executable(crsf_relay
   src/main.cpp
   src/core.cpp
+  src/mlrs.cpp
   src/ports.cpp
 )
 target_include_directories(crsf_relay PRIVATE src)

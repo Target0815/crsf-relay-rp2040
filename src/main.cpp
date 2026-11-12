@@ -29,6 +29,7 @@
 
 #include "config.h"
 #include "core.h"
+#include "mlrs.h"
 #include "hal.h"
 #include "ports.h"
 #include "ws2812.pio.h"
@@ -211,6 +212,11 @@ void printStatus() {
              (unsigned long)s.toHandset, (unsigned long)s.droppedToHandset);
     hal::log("param retry : %lu by the relay, %lu duplicate answers dropped\n",
              (unsigned long)s.relayRetries, (unsigned long)s.duplicatesDropped);
+    if (mlrs::active()) {
+        hal::log("mLRS        : %s, params %u/%u, requests %lu, retries %lu\n", mlrs::stateName(),
+                 unsigned(mlrs::paramsLoaded()), unsigned(mlrs::paramNum()),
+                 (unsigned long)mlrs::requests(), (unsigned long)mlrs::retries());
+    }
     hal::log("supply      : %.2f V, chip %.1f C, watchdog resets %lu\n", double(vSupply), double(tChip),
              (unsigned long)wdgResets);
 }
