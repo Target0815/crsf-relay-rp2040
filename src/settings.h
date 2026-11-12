@@ -24,6 +24,8 @@ struct Settings {
     uint8_t telemetryMode[crsf::type::Ping]; // 0=Off 1=Forward 2=Tunnel
     // ---- added in 1.0.4 (keep new fields at the end: older flash data is migrated)
     uint8_t ardupilot_mode;     // type 0x80 passthrough: 0=Off 1=Forward 2=Tunnel
+    // ---- added in 1.0.8
+    uint8_t relay_inverted;     // relay side polarity: 0=normal 1=inverted
 
     void defaults() {
         std::memset(this, 0, sizeof(*this));
@@ -41,8 +43,22 @@ struct Settings {
         own_telemetry      = 0;
         for (auto& m : telemetryMode) m = 1;
         ardupilot_mode     = 1;
+        relay_inverted     = 0;
     }
     // range check after loading from flash
+    // 1.0.8: these values have no menu entry any more and are fixed to their defaults
+    void fixHidden() {
+        Settings d;
+        d.defaults();
+        std::memcpy(txname, d.txname, sizeof(txname));
+        rewrite_name       = d.rewrite_name;
+        failsafe_mode      = d.failsafe_mode;   // Forward: relay stops when receiver 1 is lost
+        address            = d.address;
+        tx_rewrite_address = d.tx_rewrite_address;
+        rx_rewrite_address = d.rx_rewrite_address;
+        tempOffTelemetry   = d.tempOffTelemetry;
+    }
+
     bool plausible() const {
         if (txname[sizeof(txname) - 1] != '\0') return false;
         if (rewrite_name > 1 || link_stat_mode > 3 || failsafe_mode > 1) return false;
@@ -53,7 +69,7 @@ struct Settings {
         if (telemetry_rate < 1 || telemetry_rate > 10) return false;
         if (tempOffTelemetry < 1 || tempOffTelemetry > 60) return false;
         for (auto m : telemetryMode) if (m > 2) return false;
-        if (ardupilot_mode > 2) return false;
+        if (ardupilot_mode > 2 || relay_inverted > 1) return false;
         return true;
     }
 };

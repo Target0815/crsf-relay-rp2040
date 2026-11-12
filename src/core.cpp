@@ -349,6 +349,22 @@ void tunnel(const Frame& f, uint8_t subType) {
     }
 }
 
+// 1.0.8: "uplink fps" of LinkStatsTx is in units of 10 Hz (EdgeTX: TFPS). The rf profile of
+// LinkStats is no rate: CRSF enum 0..3 = 4/50/150/250 Hz, mLRS uses 19/31/111 for its 19/31/111 Hz
+// modes. Unknown values (e.g. ELRS rate indices) give 0 instead of a wrong rate.
+uint8_t fpsTenth(uint8_t rfProfile) {
+    switch (rfProfile) {
+    case 0: return 0;
+    case 1: return 5;
+    case 2: return 15;
+    case 3: return 25;
+    case 19: return 2;
+    case 31: return 3;
+    case 111: return 11;
+    default: return 0;
+    }
+}
+
 void transformLinkStats(const Frame& f) {
     if (f.size < 3 + 10 + 1) return;
     const uint8_t* p = &f.b[idx::type + 1];
@@ -380,7 +396,7 @@ void transformLinkStats(const Frame& f) {
         w.u8(up_link_qly);
         w.u8(up_snr);
         w.u8(0);
-        w.u8(rf_profile);
+        w.u8(fpsTenth(rf_profile));
         w.finish();
     }
     sendToHandset(tx);
@@ -485,7 +501,6 @@ void buildChannels(Frame& f) {
 // ---------------------------------------------------------------- device / menu (CrsfCallback)
 uint8_t ownAddress = 0xCD;
 char devName[32] = {};
-char versionString[16] = {};
 char wdgString[16] = {};
 char retryString[12] = {};
 char voltString[12] = {};
@@ -538,28 +553,16 @@ void buildMenu() {
     nParams = 0;
     Param p;
     p = {}; p.type = Folder; p.name = "root"; add(p);
-    // RP2040 port: first entry, so the port and its firmware version are visible at the top
+    // RP2040 port, 1.0.8: info block first; entries not needed for the own use case were removed
+    // (version HW/SW, addresses, name rewrite, failsafe, telemetry pause) - see Settings::fixHidden()
     p = {}; p.type = Info; p.name = "RP2040 Firmware"; p.options = FW_VERSION; add(p);
-    p = {}; p.type = Info; p.name = "Version(HW/SW)"; p.options = versionString; add(p);
     p = {}; p.type = Info; p.name = "Watchdog"; p.options = wdgString; add(p);
-    // RP2040 port: parameter requests repeated by the relay since power-up (idea from the original, SW 20)
+    // parameter requests repeated by the relay since power-up (idea from the original, SW 20)
     p = {}; p.type = Info; p.name = "Total Retries"; p.options = retryString; add(p);
-    p = {}; p.type = U8; p.name = "CRSF Address"; p.value = &settings.address; p.min = 192; p.max = 207;
-    p.cb = [](uint8_t a) { ownAddress = a; updateName(); return true; }; add(p);
-    p = {}; p.type = U8; p.name = "TX Rewrite Address"; p.value = &settings.tx_rewrite_address; p.min = 192; p.max = 207;
-    p.cb = [](uint8_t a) { relay::txAddr = a; return true; }; add(p);
-    p = {}; p.type = U8; p.name = "RX Rewrite Address"; p.value = &settings.rx_rewrite_address; p.min = 192; p.max = 207;
-    p.cb = [](uint8_t a) { relay::rxAddr = a; return true; }; add(p);
-    p = {}; p.type = Str; p.name = "TX Rewrite Name"; p.str = settings.txname; p.strMax = sizeof(settings.txname); add(p);
-    p = {}; p.type = Sel; p.name = "Rewrite Name"; p.options = "Off;On"; p.value = &settings.rewrite_name; p.max = 1;
-    p.cb = [](uint8_t v) { relay::doRewriteName = (v == 1); return true; }; add(p);
+    p = {}; p.type = Info; p.name = "Supply Volt."; p.options = voltString; add(p);
+    p = {}; p.type = Info; p.name = "Chip Temp."; p.options = tempString; add(p);
     p = {}; p.type = Sel; p.name = "LinkStat"; p.options = "Off;Forward;Transform;Tunnel"; p.value = &settings.link_stat_mode; p.max = 3;
     p.cb = [](uint8_t v) { relay::linkStatMode = v; return true; }; add(p);
-    p = {}; p.type = Sel; p.name = "Failsafe"; p.options = "Forward;Hold"; p.value = &settings.failsafe_mode; p.max = 1;
-    p.cb = [](uint8_t) { return true; }; add(p);
-    p = {}; p.type = U8; p.name = "Telem. Off Dur."; p.value = &settings.tempOffTelemetry; p.min = 1; p.max = 60; p.unit = "sec";
-    // RP2040 port: real seconds (the original timer ran at half the displayed duration)
-    p.cb = [](uint8_t a) { relay::autoOnMs = uint32_t(a) * 1000u; return true; }; add(p);
 
     p = {}; p.type = Folder; p.name = "Telemetry forwarding";
     const uint8_t parent = add(p);
@@ -591,10 +594,9 @@ void buildMenu() {
     p.cb = [](uint8_t v) { relay::half = (v == 1); hal::relaySetHalfDuplex(relay::half); return true; }; add(p);
     p = {}; p.type = Sel; p.name = "Baudrate"; p.options = "400k;420k;460K;921K;1,8M"; p.value = &settings.baudrate; p.max = 4;
     p.cb = [](uint8_t v) { hal::relaySetBaud(relayBaudrates[v]); return true; }; add(p);
-
-    // RP2040 port: new entries (from the original ToDo list)
-    p = {}; p.type = Info; p.name = "Supply Volt."; p.options = voltString; add(p);
-    p = {}; p.type = Info; p.name = "Chip Temp."; p.options = tempString; add(p);
+    // 1.0.8: signal polarity of the relay side; mLRS expects inverted CRSF at 400k/921k/1.87M
+    p = {}; p.type = Sel; p.name = "Inverted"; p.options = "Off;On"; p.value = &settings.relay_inverted; p.max = 1;
+    p.cb = [](uint8_t v) { hal::relaySetInverted(v == 1); return true; }; add(p);
     p = {}; p.type = Sel; p.name = "Own Telemetry"; p.options = "Off;On"; p.value = &settings.own_telemetry; p.max = 1;
     p.cb = [](uint8_t) { return true; }; add(p);
 }
@@ -911,7 +913,11 @@ void ownTelemetry(uint32_t now) {
 // ---------------------------------------------------------------- public API
 void init(uint32_t now) {
     relay::enabled = false; // like the original (since 2026-11-08): relay active only in state Run
-    std::snprintf(versionString, sizeof(versionString), "%u:%u", unsigned(HW_VERSION), unsigned(SW_VERSION));
+    settings.fixHidden();   // 1.0.8: values without menu entry are fixed, stored values are ignored
+    relay::txAddr = settings.tx_rewrite_address;
+    relay::rxAddr = settings.rx_rewrite_address;
+    relay::doRewriteName = false;
+    relay::autoOnMs = uint32_t(settings.tempOffTelemetry) * 1000u;
     ownAddress = settings.address;
     updateName();
     buildMenu();

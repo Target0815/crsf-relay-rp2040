@@ -17,6 +17,7 @@ using namespace crsf;
 namespace stub {
 uint32_t baud = 0;
 bool half = false;
+bool inverted = false;
 uint32_t frameErrors = 0;
 hal::Led led = hal::Led::Off;
 int saves = 0;
@@ -25,6 +26,7 @@ bool verbose = false;
 namespace hal {
 void relaySetBaud(uint32_t b) { stub::baud = b; }
 void relaySetHalfDuplex(bool on) { stub::half = on; }
+void relaySetInverted(bool on) { stub::inverted = on; }
 uint32_t relayFrameErrors() { auto e = stub::frameErrors; stub::frameErrors = 0; return e; }
 void led(Led p) { stub::led = p; }
 void requestSave() { ++stub::saves; }
@@ -178,7 +180,7 @@ int main(int argc, char**) {
         const uint32_t serial = (q[0] << 24) | (q[1] << 16) | (q[2] << 8) | q[3];
         const uint32_t hw = (q[4] << 24) | (q[5] << 16) | (q[6] << 8) | q[7];
         CHECK(serial == 1234 && hw == 4);
-        CHECK(q[12] == 38); // number of parameters
+        CHECK(q[12] == 31); // number of parameters
         CHECK(drainRelay(now).empty()); // relay disabled before state Run
     }
 
@@ -186,7 +188,7 @@ int main(int argc, char**) {
     std::map<std::string, uint8_t> index;
     {
         int folders = 0, sels = 0;
-        for (uint8_t i = 1; i <= 38; ++i) {
+        for (uint8_t i = 1; i <= 31; ++i) {
             ParamInfo pi;
             const bool ok = readParam(now, i, pi);
             CHECK(ok);
@@ -197,9 +199,9 @@ int main(int argc, char**) {
             if (stub::verbose) printf("  %2u parent %2u type %2u %s\n", i, pi.parent, pi.type, pi.name.c_str());
         }
         CHECK(folders == 1);
-        CHECK(sels == 19 + 6);
+        CHECK(sels == 19 + 5); // LinkStat, Half-Duplex, Baudrate, Inverted, Own Telemetry
         ParamInfo pi;
-        CHECK(!readParam(now, 39, pi)); // out of range -> no answer
+        CHECK(!readParam(now, 32, pi)); // out of range -> no answer
         // root folder lists its children, without itself
         ParamInfo root;
         CHECK(readParam(now, 0, root));
@@ -223,14 +225,13 @@ int main(int argc, char**) {
         ParamInfo fw;
         CHECK(readParam(now, 1, fw));
         CHECK(fw.type == 12 && fw.name == "RP2040 Firmware" && cstr(fw.rest.data(), fw.rest.size()) == FW_VERSION);
-        ParamInfo ver;
-        CHECK(readParam(now, index["Version(HW/SW)"], ver));
-        CHECK(cstr(ver.rest.data(), ver.rest.size()) == "4:15");
-        // U8 with unit
-        ParamInfo to;
-        CHECK(readParam(now, index["Telem. Off Dur."], to));
-        CHECK(to.rest[0] == 30 && to.rest[1] == 1 && to.rest[2] == 60);
-        CHECK(cstr(&to.rest[4], 8) == "sec");
+        // 1.0.8: removed entries
+        for (const char* n : {"Version(HW/SW)", "CRSF Address", "TX Rewrite Address", "RX Rewrite Address",
+                              "TX Rewrite Name", "Rewrite Name", "Failsafe", "Telem. Off Dur."}) {
+            CHECK(index.count(n) == 0);
+        }
+        // info block directly after the firmware entry
+        CHECK(index["Watchdog"] == 2 && index["Total Retries"] == 3 && index["Supply Volt."] == 4 && index["Chip Temp."] == 5);
     }
 
     // --- parameter write: baudrate, half duplex, string, address
@@ -240,19 +241,18 @@ int main(int argc, char**) {
         CHECK(stub::baud == 1'870'000);
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 1}), now);
         CHECK(stub::half && core::halfDuplex());
-        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["TX Rewrite Name"], 'L', 'o', 'n', 'g', 'N', 'a', 'm', 'e', 'X', 0}), now);
-        CHECK(std::string(core::settings.txname) == "LongNam");
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Forward Rate"], 99}), now);
         CHECK(core::settings.telemetry_rate == 2); // out of range: rejected
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Forward Rate"], 2}), now);
-        CHECK(stub::saves == s0 + 4);
-        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["CRSF Address"], 200}), now);
-        CHECK(std::string(core::deviceName()) == "RC-Relay32@200");
-        drainHandset();
-        // now addressed as 200
-        core::onInputFrame(make(type::Ping, {200, addr::Handset}), now);
-        CHECK(drainHandset().size() == 1);
-        core::onInputFrame(make(type::ParamWrite, {200, addr::Handset, index["CRSF Address"], 0xCD}), now);
+        CHECK(stub::saves == s0 + 3);
+        // 1.0.8: relay side polarity
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Inverted"], 1}), now);
+        CHECK(stub::inverted && core::settings.relay_inverted == 1);
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Inverted"], 2}), now);
+        CHECK(stub::inverted); // out of range: rejected
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Inverted"], 0}), now);
+        CHECK(!stub::inverted);
+        CHECK(std::string(core::deviceName()) == "RC-Relay32@205");
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 0}), now);
         drainHandset();
         drainRelay(now, 2);
@@ -417,12 +417,6 @@ int main(int argc, char**) {
         auto h = drainHandset();
         CHECK(h.size() == 1 && h[0].b[4] == 0xCE && h[0].crcOk());
         CHECK(cstr(&h[0].b[5], 20) == "ELRS TX Mod"); // rewrite name is off
-        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Rewrite Name"], 1}), now);
-        core::tick(now += 40'000);
-        drainHandset();
-        core::onRelayFrame(info, now);
-        h = drainHandset();
-        CHECK(h.size() == 1 && cstr(&h[0].b[5], 20) == "LongNam...." && h[0].crcOk());
         // RX source, dest TX -> handset
         core::onRelayFrame(make(type::ParamEntry, {addr::TX, addr::RX, 1, 0, 0}), now);
         h = drainHandset();
@@ -440,7 +434,14 @@ int main(int argc, char**) {
         CHECK(h.size() == 2);
         CHECK(h[0].type() == type::LinkStatsRx && h[1].type() == type::LinkStatsTx);
         CHECK(h[0].b[3] == 70 && h[0].b[4] == 99 && h[0].b[7] == 2);
-        CHECK(h[1].b[3] == 50 && h[1].b[4] == 100 && h[1].b[8] == 4);
+        CHECK(h[1].b[3] == 50 && h[1].b[4] == 100 && h[1].b[8] == 0); // rf profile 4: unknown rate -> 0
+        // 1.0.8: mLRS 31 Hz mode (rf profile 31) -> TFPS 3 (x10 Hz)
+        core::tick(now += 1000);
+        drainHandset();
+        core::onRelayFrame(make(type::Link, {50, 60, 100, 9, 0, 31, 2, 70, 99, 8}), now);
+        core::onRelayFrame(make(type::Link, {50, 60, 100, 9, 0, 31, 2, 70, 99, 8}), now);
+        h = drainHandset();
+        CHECK(h.size() == 2 && h[1].type() == type::LinkStatsTx && h[1].b[8] == 3);
 
         auto bat = make(0x08, {0, 120, 0, 10, 0, 0, 100, 80});
         for (int i = 0; i < 4; ++i) core::onRelayFrame(bat, now);
@@ -546,12 +547,13 @@ int main(int argc, char**) {
             drainRelay(now);
         }
         CHECK(std::string(core::stateName()) == "Run");
-        // hold mode keeps sending last values
-        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Failsafe"], 1}), now);
+        // failsafe is fixed to Forward (1.0.8): the relay stops when receiver 1 is lost
         drainRelay(now, 50);
         CHECK(std::string(core::stateName()) == "UnConnected");
         auto h = drainRelay(now, 5);
-        CHECK(h.size() == 5);
+        bool chan = false;
+        for (auto& f : h) if (f.type() == type::Channels) chan = true;
+        CHECK(!chan);
     }
 
     // --- UnConnected -> Run with channels only (DirectConnected)
@@ -624,6 +626,18 @@ int main(int argc, char**) {
         CHECK(store::decode(old, sizeof(old), m));
         CHECK(m.address == 0xC7 && m.half_duplex == 1 && m.ardupilot_mode == 1);
         CHECK(offsetof(Settings, ardupilot_mode) == 59);
+        CHECK(m.relay_inverted == 0); // 1.0.8 field keeps its default
+        CHECK(offsetof(Settings, relay_inverted) == 60);
+    }
+
+    // --- 1.0.8: values without menu entry are fixed, stored values are ignored
+    {
+        Settings s; s.defaults();
+        s.failsafe_mode = 1; s.address = 200; s.tx_rewrite_address = 0xC2; s.rewrite_name = 1; s.tempOffTelemetry = 5;
+        s.relay_inverted = 1;
+        s.fixHidden();
+        CHECK(s.failsafe_mode == 0 && s.address == 0xCD && s.tx_rewrite_address == 0xCE && s.rewrite_name == 0);
+        CHECK(s.tempOffTelemetry == 30 && s.relay_inverted == 1);
     }
 
     // --- settings plausibility

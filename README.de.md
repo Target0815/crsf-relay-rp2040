@@ -39,6 +39,7 @@ oder `picotool load -f -x crsf-relay-…uf2` verwenden.
 | GND, 5V     | gemeinsame Masse, Versorgung              |                  |
 
 * Alle Signale sind 3,3-V-Pegel, nicht invertiert (CRSF-Standard). Interne Pull-ups sind aktiv.
+  Die Relais-Seite lässt sich über den Menüpunkt „Inverted“ invertieren (z. B. für mLRS, siehe unten).
 * **Vollduplex** (ELRS-Empfänger als Sender, „RX-as-TX“): GP4/GP5 kreuzen wie gewohnt.
 * **Halbduplex** (JR-Bay- bzw. externes ELRS-Modul): nur **GP4** an den CRSF-/S.Port-Pin des Moduls.
   Im Menü „Half-Duplex“ auf „On“ stellen. Externe Module brauchen ihre eigene Versorgung
@@ -60,15 +61,21 @@ Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.6`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.0.8`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
-Alle Menüpunkte und Standardwerte des Originals sind vorhanden:
-CRSF Address, TX/RX Rewrite Address, TX Rewrite Name, Rewrite Name, LinkStat
-(Off/Forward/Transform/Tunnel), Failsafe (Forward/Hold), Telem. Off Dur.,
-Ordner „Telemetry forwarding“ (Forward Rate + Off/Forward/Tunnel je Sensortyp),
-Half-Duplex, Baudrate (400k/420k/460k/921k/1,87M).
+Menü (seit 1.0.8): Info-Block (RP2040 Firmware, Watchdog, Total Retries, Supply Volt.,
+Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), Ordner „Telemetry forwarding“
+(Forward Rate + Off/Forward/Tunnel je Sensortyp), Half-Duplex,
+Baudrate (400k/420k/460k/921k/1,87M), **Inverted** (Off/On), Own Telemetry.
+
+Seit 1.0.8 stehen folgende Menüpunkte des Originals nicht mehr im Menü; ihre Werte sind fest auf
+die Standardwerte gesetzt (gespeicherte Werte älterer Versionen werden ignoriert): Version(HW/SW),
+CRSF Address (205), TX/RX Rewrite Address (206/207), TX Rewrite Name, Rewrite Name (aus),
+**Failsafe (fest „Forward“: das Relais stoppt, wenn Empfänger 1 ausfällt, und das Modell geht in
+sein eigenes Failsafe)**, Telem. Off Dur. (30 s). Die Einstellung „Hold“ des Originals sendete die
+letzten Kanalwerte weiter und verhinderte so das Failsafe des Modells.
 
 Neu im Ordner „Telemetry forwarding“:
 
@@ -86,6 +93,22 @@ Neu (aus der ToDo-Liste des Originals):
 * **Own Telemetry**: sendet Spannung (CRSF 0x0E) und Chiptemperatur (0x0D) einmal pro Sekunde
   mit der Relais-Adresse als Sensor-ID. In EdgeTX erscheinen sie als eigene Sensoren und kollidieren
   nicht mit den Sensoren des Modells. Standard: aus.
+
+## mLRS als Link 2 (experimentell)
+
+Das Relais kann statt eines ELRS-Moduls ein mLRS-TX-Modul ansteuern (getestet: MatekSys
+mR900-30 als TX), z. B. internes ELRS-Modul der Funke → ELRS-Empfänger → Relais → mLRS-TX →
+mLRS-Empfänger im Modell.
+
+* Halbduplex: GP4 an JR-Pin 5 bzw. „In“ des mLRS-TX, „Half-Duplex“ = On.
+* mLRS erwartet CRSF bei 400k/921k/1,87M **invertiert**, nicht invertiert nur mit 416 666 Baud.
+  Also entweder „Baudrate“ = 420k mit „Inverted“ = Off oder 400k/921k mit „Inverted“ = On.
+* Der mLRS-TX erkennt Baudrate und Polarität nur ca. 6 s nach dem Einschalten. Er muss in dieser
+  Zeit Kanäle vom Relais bekommen: erst die Funke einschalten, dann den mLRS-TX.
+* Empfohlen: LinkStat = Transform, im Ordner „Telemetry forwarding“ Link RX und Link TX auf Off
+  (diese Frames schickt der mLRS-TX selbst). Die Daten des Flugcontrollers (GPS, Akku, Lage,
+  Flugmodus …) erzeugt der mLRS-TX aus MAVLink, sie kommen als normale Sensoren an.
+* mLRS-Parameter lassen sich über das Relais noch nicht ändern (CLI oder Display des mLRS-TX).
 
 ## USB-Konsole
 
@@ -146,6 +169,10 @@ Bewusste Abweichungen:
    Lua-Zugriff pausiert, und schreibt die Bytes 3 und 4 um, falls sie wie Adressen aussehen.
    Hier ist 0x80 normale Telemetrie mit eigenem Menüpunkt (siehe oben).
 9. **IrDA** entfällt (beim WeAct-Build ohnehin nicht aktiv, der RP2040 hat kein IrDA).
+10. **Verkleinertes Menü und festes Failsafe** (1.0.8), siehe „Menü“.
+11. **TFPS bei LinkStat = Transform** (1.0.8): Bis 1.0.7 wurde der RF-Modus der
+    Linkstatistik in das Feld für die Paketrate kopiert; EdgeTX zeigte so z. B. 310 Hz für den mLRS-31-Hz-Modus.
+    Bekannte Modi werden jetzt umgerechnet (CRSF 4/50/150/250 Hz, mLRS 19/31/111 Hz), unbekannte ergeben 0.
 
 Die Punkte 7 und 8 sind inzwischen auch ins Original übernommen (V17), Punkt 1 ist dort vorgeschlagen.
 

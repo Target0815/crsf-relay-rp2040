@@ -266,6 +266,11 @@ void relaySetHalfDuplex(bool on) {
     ports::relaySetHalfDuplex(on);
     relayParser.reset();
 }
+void relaySetInverted(bool on) {
+    hal::log("# Relay inverted: %u\n", on ? 1u : 0u);
+    ports::relaySetInverted(on);
+    relayParser.reset();
+}
 uint32_t relayFrameErrors() { return ports::relayFrameErrorsTakeNew(); }
 void led(Led p) {
     if (p != ledPattern) {

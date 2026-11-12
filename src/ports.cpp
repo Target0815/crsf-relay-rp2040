@@ -114,6 +114,18 @@ void dmaSend(int ch, volatile void* dst, uint dreq, const uint8_t* src, size_t n
     dma_channel_configure(ch, &c, dst, src, n, true);
 }
 
+// 1.0.8: polarity of the relay pins. gpio_set_function()/pio_gpio_init() reset the overrides,
+// so this is applied after every (re)configuration. Idle level is held by the pull resistor:
+// pull-up for normal, pull-down for inverted signals.
+bool relayInverted = false;
+
+void applyPolarity(uint pin) {
+    const uint ov = relayInverted ? GPIO_OVERRIDE_INVERT : GPIO_OVERRIDE_NORMAL;
+    gpio_set_outover(pin, ov);
+    gpio_set_inover(pin, ov);
+    if (relayInverted) gpio_pull_down(pin); else gpio_pull_up(pin);
+}
+
 void hdRxStart() {
     while (!pio_sm_is_rx_fifo_empty(hdPio, smRx)) (void)hdPio->rxf[smRx];
     pio_sm_restart(hdPio, smRx);
@@ -134,7 +146,7 @@ void enterHalfDuplex() {
     hd_tx_program_init(hdPio, smTx, offTx, PIN_RELAY_TX, baudRate);
     hd_rx_program_init(hdPio, smRx, offRx, PIN_RELAY_TX, baudRate);
     pio_gpio_init(hdPio, PIN_RELAY_TX);
-    gpio_pull_up(PIN_RELAY_TX);
+    applyPolarity(PIN_RELAY_TX);
     pio_sm_set_enabled(hdPio, smTx, true);
     hdTxActive = false;
     hdRxStart();
@@ -146,6 +158,8 @@ void enterFullDuplex() {
     pio_sm_set_enabled(hdPio, smRx, false);
     hdTxActive = false;
     uartSetup(uart1, PIN_RELAY_TX, PIN_RELAY_RX, baudRate, uart1Isr, UART1_IRQ);
+    applyPolarity(PIN_RELAY_TX);
+    applyPolarity(PIN_RELAY_RX);
     relayRing.clear();
 }
 
@@ -211,6 +225,13 @@ void relaySetHalfDuplex(bool on) {
     }
 }
 bool relayHalfDuplex() { return half; }
+
+void relaySetInverted(bool on) {
+    relayInverted = on;
+    applyPolarity(PIN_RELAY_TX);
+    if (!half) applyPolarity(PIN_RELAY_RX);
+    relayRing.clear();
+}
 
 void relayPoll() {
     if (!half) return;

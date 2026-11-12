@@ -13,6 +13,7 @@ enum class Led : uint8_t { Off, Init, UnConnected, Run };
 
 void relaySetBaud(uint32_t baud);
 void relaySetHalfDuplex(bool on);
+void relaySetInverted(bool on); // 1.0.8
 uint32_t relayFrameErrors(); // read and reset
 void led(Led pattern);
 void requestSave();          // settings changed, store to flash soon

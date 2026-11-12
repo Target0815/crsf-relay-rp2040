@@ -51,6 +51,7 @@ void relayInit(uint32_t baud);
 void relaySetBaud(uint32_t baud);
 uint32_t relayBaud();
 void relaySetHalfDuplex(bool on);
+void relaySetInverted(bool on); // 1.0.8: invert relay-side signal (TX and RX)
 bool relayHalfDuplex();
 void relayPoll();                // call from the main loop (half-duplex turnaround)
 bool relayRead(uint8_t& c);
