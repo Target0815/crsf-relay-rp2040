@@ -5,7 +5,7 @@
 #pragma once
 
 #define FW_NAME      "crsf-relay"
-#define FW_VERSION   "1.1.1"
+#define FW_VERSION   "1.1.2"
 
 // 1.0.13: device name in the ELRS Lua script / TBS Agent: "RC-Relay <chip>" (max. 15 characters
 // in EdgeTX). Up to 1.0.12 it was "RC-Relay32@<address>" like the original.

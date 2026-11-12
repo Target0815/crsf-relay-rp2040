@@ -77,6 +77,8 @@ struct Field {
 
 Io io{};
 bool detected = false;
+uint32_t lastSeen = 0;     // 1.1.2: last 0x82 frame of the module
+constexpr uint32_t LostMs = 3000;
 St st = St::Off;
 uint32_t tState = 0;       // state entered / last request
 uint8_t tries = 0;
@@ -405,6 +407,7 @@ void init(const Io& i) {
 
 void reset() {
     detected = false;
+    lastSeen = 0;
     st = St::Off;
     structured = false;
     nF = 0;
@@ -436,6 +439,7 @@ void onDeviceInfo(bool isMlrs, uint32_t now) {
 
 void onModuleFrame(const Frame& f, uint32_t now) {
     if (f.type() != FrameMBridgeToRadio || f.size < 5) return;
+    lastSeen = now ? now : 1;
     if (!detected) {
         detected = true;
         log("# mLRS: TX module detected\n");
@@ -599,8 +603,15 @@ void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data
     log("# mLRS: set %u = %u\n", fl.mi, v);
 }
 
-void tick(uint32_t now, bool linkUp) {
+void tick(uint32_t now, bool linkUp, bool hold) {
     if (!detected) return;
+    // 1.1.2: an mLRS TX sends its statistics (0x82) all the time; without them for 3 s while the
+    // relay is sending, the module was swapped (e.g. for an ELRS module): proxy and failsafe off
+    if (linkUp && !hold && lastSeen && now - lastSeen > LostMs) {
+        log("# mLRS: module gone\n");
+        reset();
+        return;
+    }
     if (saving && now - saveSince > SaveMaxMs) saving = false;
     if (!linkUp) return;
     if (reloadAt && int32_t(now - reloadAt) >= 0 && st != St::ReqInfo && st != St::WaitInfo && st != St::Params) {

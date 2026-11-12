@@ -63,7 +63,7 @@ The relay reports itself as `RC-Relay RP2040` (CRSF address 205 = 0xCD; up to 1.
 `RC-Relay32@205` like the original).
 TX module 2 appears at address 206 (0xCE), its receiver at 207 (0xCF).
 
-The first entry, **Firmware**, shows the firmware version of this port (e.g. `1.1.1`),
+The first entry, **Firmware**, shows the firmware version of this port (e.g. `1.1.2`),
 so the Lua script immediately shows that the RP2040 port is running and which version.
 **Total Retries** counts the parameter requests the relay has repeated since power-up
 (see item 7 under "Differences from the original"); a rising value indicates a weak link behind the relay.
