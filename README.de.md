@@ -61,7 +61,8 @@ Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207
 
 Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
 (z. B. `1.0.6`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
-welcher Version.
+welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
+Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
 Alle Menüpunkte und Standardwerte des Originals sind vorhanden:
 CRSF Address, TX/RX Rewrite Address, TX Rewrite Name, Rewrite Name, LinkStat

@@ -178,7 +178,7 @@ int main(int argc, char**) {
         const uint32_t serial = (q[0] << 24) | (q[1] << 16) | (q[2] << 8) | q[3];
         const uint32_t hw = (q[4] << 24) | (q[5] << 16) | (q[6] << 8) | q[7];
         CHECK(serial == 1234 && hw == 4);
-        CHECK(q[12] == 37); // number of parameters
+        CHECK(q[12] == 38); // number of parameters
         CHECK(drainRelay(now).empty()); // relay disabled before state Run
     }
 
@@ -186,7 +186,7 @@ int main(int argc, char**) {
     std::map<std::string, uint8_t> index;
     {
         int folders = 0, sels = 0;
-        for (uint8_t i = 1; i <= 37; ++i) {
+        for (uint8_t i = 1; i <= 38; ++i) {
             ParamInfo pi;
             const bool ok = readParam(now, i, pi);
             CHECK(ok);
@@ -199,7 +199,7 @@ int main(int argc, char**) {
         CHECK(folders == 1);
         CHECK(sels == 19 + 6);
         ParamInfo pi;
-        CHECK(!readParam(now, 38, pi)); // out of range -> no answer
+        CHECK(!readParam(now, 39, pi)); // out of range -> no answer
         // root folder lists its children, without itself
         ParamInfo root;
         CHECK(readParam(now, 0, root));
@@ -380,6 +380,9 @@ int main(int argc, char**) {
         for (auto& f : r) if (f.type() == type::ParamWrite) ++writes;
         CHECK(writes == 1);
         CHECK(core::stats().relayRetries == 6);
+        ParamInfo tr;
+        CHECK(readParam(now, index["Total Retries"], tr));
+        CHECK(tr.type == 12 && cstr(tr.rest.data(), tr.rest.size()) == "6");
         CHECK(core::stats().duplicatesDropped == 3);
         drainHandset();
     }

@@ -62,6 +62,8 @@ TX module 2 appears at address 206 (0xCE), its receiver at 207 (0xCF).
 
 The first entry, **RP2040 Firmware**, shows the firmware version of this port (e.g. `1.0.6`),
 so the Lua script immediately shows that the RP2040 port is running and which version.
+**Total Retries** counts the parameter requests the relay has repeated since power-up
+(see item 7 under "Differences from the original"); a rising value indicates a weak link behind the relay.
 
 All menu entries and default values of the original are available:
 CRSF Address, TX/RX Rewrite Address, TX Rewrite Name, Rewrite Name, LinkStat

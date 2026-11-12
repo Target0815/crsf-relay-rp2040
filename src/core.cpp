@@ -487,6 +487,7 @@ uint8_t ownAddress = 0xCD;
 char devName[32] = {};
 char versionString[16] = {};
 char wdgString[16] = {};
+char retryString[12] = {};
 char voltString[12] = {};
 char tempString[12] = {};
 
@@ -541,6 +542,8 @@ void buildMenu() {
     p = {}; p.type = Info; p.name = "RP2040 Firmware"; p.options = FW_VERSION; add(p);
     p = {}; p.type = Info; p.name = "Version(HW/SW)"; p.options = versionString; add(p);
     p = {}; p.type = Info; p.name = "Watchdog"; p.options = wdgString; add(p);
+    // RP2040 port: parameter requests repeated by the relay since power-up (idea from the original, SW 20)
+    p = {}; p.type = Info; p.name = "Total Retries"; p.options = retryString; add(p);
     p = {}; p.type = U8; p.name = "CRSF Address"; p.value = &settings.address; p.min = 192; p.max = 207;
     p.cb = [](uint8_t a) { ownAddress = a; updateName(); return true; }; add(p);
     p = {}; p.type = U8; p.name = "TX Rewrite Address"; p.value = &settings.tx_rewrite_address; p.min = 192; p.max = 207;
@@ -600,6 +603,7 @@ uint8_t numberOfParameters() { return uint8_t(nParams - 1); }
 
 void refreshInfo() {
     std::snprintf(wdgString, sizeof(wdgString), "%lu", (unsigned long)hal::watchdogResets());
+    std::snprintf(retryString, sizeof(retryString), "%lu", (unsigned long)relay::cntRelayRetries);
     const float v = hal::supplyVoltage();
     if (v < 0.0f) {
         std::snprintf(voltString, sizeof(voltString), "-");

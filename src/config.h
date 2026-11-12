@@ -5,7 +5,7 @@
 #pragma once
 
 #define FW_NAME      "crsf-relay"
-#define FW_VERSION   "1.0.6"
+#define FW_VERSION   "1.0.7"
 
 // shown in elrsV3.lua / TBS Agent as "<DEVICE_TITLE><address>", e.g. RC-Relay32@205
 #ifndef DEVICE_TITLE
