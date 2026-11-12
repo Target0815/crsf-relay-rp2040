@@ -43,9 +43,8 @@ void onPing(uint32_t now);
 void paramRead(uint8_t handset, uint8_t dev, uint8_t index, uint8_t chunk);
 void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data, uint8_t n, uint32_t now);
 
-// call periodically; 'linkUp' = relay is sending to the module, 'hold' = keep the detection
-// even without frames from the module (failsafe config switch in progress)
-void tick(uint32_t now, bool linkUp, bool hold = false);
+// call periodically; 'linkUp' = relay is sending to the module
+void tick(uint32_t now, bool linkUp);
 
 // 1.1.1: config id of the mLRS TX (from the first INFO after detection, "Receiver ID" in EdgeTX)
 bool configKnown();

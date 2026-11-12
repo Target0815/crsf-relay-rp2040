@@ -860,7 +860,6 @@ void checkPackages(uint32_t now) {
 // cause nothing. The channels keep being sent, so the mLRS TX keeps its baud rate after restarting.
 namespace mlrsfs {
 bool on = false;          // failsafe config selected
-uint8_t original = 0;     // config id to restore
 uint8_t target = 0;       // config id to send
 uint8_t sendLeft = 0;     // repetitions left
 uint32_t tLast = 0;
@@ -910,7 +909,6 @@ void enter(State s, uint32_t now) {
         hal::log("# UnCon\n");
         if (mlrs::active() && mlrs::configKnown() && relay::enabled) {
             mlrsfs::on = true; // relay stays enabled, see mlrsfs
-            mlrsfs::original = mlrs::configId();
             mlrsfs::select(mlrsfs::failsafeId());
         } else if (settings.failsafe_mode == 0) {
             relay::enabled = false;
@@ -923,7 +921,7 @@ void enter(State s, uint32_t now) {
         relay::enabled = true;
         if (mlrsfs::on) {
             mlrsfs::on = false;
-            mlrsfs::select(mlrsfs::original);
+            mlrsfs::select(mlrs::configId());
         }
         hal::led(hal::Led::Run);
         break;
@@ -1013,7 +1011,7 @@ void onRelayFrame(const Frame& f, uint32_t now) {
 void tick(uint32_t now) {
     relay::tick(now);
     mlrsfs::tick(now);
-    mlrs::tick(now, relay::enabled && !mlrsfs::on, mlrsfs::on);
+    mlrs::tick(now, relay::enabled && !mlrsfs::on);
     fsm(now);
     ownTelemetry(now);
 }

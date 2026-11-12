@@ -144,7 +144,6 @@ struct FakeMlrs {
     int stores = 0, infoRequests = 0, itemRequests = 0;
     bool mute = false;
     uint8_t configId = 4;
-    bool statsOff = false;
     std::vector<uint8_t> modelSelects;
     FakeMlrs() {
         params = {
@@ -233,10 +232,6 @@ struct FakeMlrs {
     // one radio period: channels in, relay out, module answers back
     void step(uint32_t& now) {
         core::onInputFrame(channelsFrame(1000), now);
-        if (!statsOff) { // a real mLRS TX sends its statistics (0x82, 0x65) continuously
-            std::vector<uint8_t> st(19, 0); st[0] = 0x65;
-            core::onRelayFrame(make(0x82, st, addr::Handset), now);
-        }
         for (auto& f : drainRelay(now)) {
             if (f.type() == type::Ping) {
                 auto info = make(type::Info, {addr::Handset, addr::TX, 'M','a','t','e','k',' ','m','R','9','0','0','-','3','0',0,
@@ -939,10 +934,8 @@ int main(int argc, char**) {
             int alone = 0, chan = 0, mixed = 0;
             uint8_t buf[256];
             core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now); // reload -> requests
-            std::vector<uint8_t> st3(19, 0); st3[0] = 0x65;
             for (int i = 0; i < 300; ++i) {
                 core::onInputFrame(channelsFrame(1000), now);
-                core::onRelayFrame(make(0x82, st3, addr::Handset), now);
                 now += 10;
                 core::tick(now);
                 size_t nb;
@@ -959,27 +952,6 @@ int main(int argc, char**) {
         }
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 0}), now);
         drainRelay(now, 3);
-        // 1.1.2: no mLRS frames for 3 s while sending: module swapped, proxy off
-        {
-            for (int i = 0; i < 20; ++i) m.step(now);
-            CHECK(mlrs::active());
-            m.mute = true;
-            m.statsOff = true;
-            for (int i = 0; i < 100; ++i) m.step(now); // 1 s: still active
-            CHECK(mlrs::active());
-            for (int i = 0; i < 300; ++i) {             // statistics missing for > 3 s
-                core::onInputFrame(channelsFrame(1000), now);
-                drainRelay(now);
-            }
-            CHECK(!mlrs::active());
-            m.mute = false;
-            m.statsOff = false;
-            std::vector<uint8_t> st2(19, 0); st2[0] = 0x65;
-            core::onRelayFrame(make(0x82, st2, addr::Handset), now);
-            CHECK(mlrs::active());
-            for (int i = 0; i < 300 && !mlrs::loaded(); ++i) m.step(now);
-            CHECK(mlrs::loaded());
-        }
         // other TX module (ELRS) at the same address: proxy off, requests are forwarded again
         drainHandset();
         core::onRelayFrame(make(type::Info, {addr::Handset, addr::TX, 'B','a','n','d','i','t',0,
