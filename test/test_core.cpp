@@ -143,6 +143,8 @@ struct FakeMlrs {
     std::vector<std::vector<uint8_t>> sets;
     int stores = 0, infoRequests = 0, itemRequests = 0;
     bool mute = false;
+    uint8_t configId = 4;
+    std::vector<uint8_t> modelSelects;
     FakeMlrs() {
         params = {
             {"Bind Phrase", 5, 0, 0xffff, "", 0, 0, "", "mlrs.0"},
@@ -180,6 +182,7 @@ struct FakeMlrs {
             out.push_back(reply(mlrs::mb::DeviceItemRx, ir));
             std::vector<uint8_t> in(24, 0);
             in[5] = rxAvailable ? 1 : 0;
+            in[6] = configId;
             in[8] = uint8_t(params.size());
             out.push_back(reply(mlrs::mb::Info, in));
         } else if (cmd == mlrs::mb::RequestCmd && d[0] == mlrs::mb::ParamItem) {
@@ -219,6 +222,13 @@ struct FakeMlrs {
         }
         return out;
     }
+    // CRSF command "set model selection" (0x32: dest, src, 0x10, 0x05, id, crc 0xBA)
+    void command(const Frame& f) {
+        if (f.type() == type::Command && f.b[0] == 0xC8 && f.b[3] == addr::TX && f.b[5] == 0x10 && f.b[6] == 0x05 &&
+            f.b[8] == crc8(&f.b[2], 6, 0xBA) && f.crcOk()) {
+            modelSelects.push_back(f.b[7]);
+        }
+    }
     // one radio period: channels in, relay out, module answers back
     void step(uint32_t& now) {
         core::onInputFrame(channelsFrame(1000), now);
@@ -228,6 +238,7 @@ struct FakeMlrs {
                                               'm','L','R','S', 0,0,0,0, 0,0,0,0, 0, 0});
                 core::onRelayFrame(info, now);
             }
+            command(f);
             for (auto& r : handle(f)) core::onRelayFrame(r, now);
         }
     }
@@ -894,6 +905,28 @@ int main(int argc, char**) {
         m.mute = false;
         for (int i = 0; i < 1000 && std::string(mlrs::stateName()) != "loaded"; ++i) m.step(now);
         CHECK(std::string(mlrs::stateName()) == "loaded");
+        // 1.1.1: failsafe with mLRS: receiver 1 lost -> other config id, back -> original config id
+        {
+            CHECK(mlrs::configKnown() && mlrs::configId() == 4);
+            m.modelSelects.clear();
+            int chan = 0;
+            for (int i = 0; i < 100; ++i) { // no channels from receiver 1
+                for (auto& f : drainRelay(now)) {
+                    m.command(f);
+                    if (f.type() == type::Channels) ++chan;
+                }
+            }
+            CHECK(std::string(core::stateName()) == "UnConnected");
+            CHECK(m.modelSelects.size() == 3 && m.modelSelects[0] == 5);
+            CHECK(chan > 20); // channels keep going to the mLRS TX
+            m.modelSelects.clear();
+            for (int i = 0; i < 100; ++i) m.step(now);
+            CHECK(std::string(core::stateName()) == "Run");
+            CHECK(m.modelSelects.size() == 3 && m.modelSelects[0] == 4);
+            m.modelSelects.clear();
+            for (int i = 0; i < 60; ++i) m.step(now);
+            CHECK(m.modelSelects.empty());
+        }
         // 1.0.12: half duplex with mLRS: a queued frame is sent alone, never behind the channels
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 1}), now);
         drainRelay(now, 3);

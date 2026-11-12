@@ -852,6 +852,49 @@ void checkPackages(uint32_t now) {
     }
 }
 
+// 1.1.1: failsafe with an mLRS TX module. mLRS keeps transmitting the last channel values when its
+// CRSF input stops, so "stop sending" does not reach the model. Instead the relay does what EdgeTX
+// does when the receiver ID is changed: it selects another mLRS config (other bind phrase), the
+// link to the model breaks and the receiver goes into its failsafe. When receiver 1 is back, the
+// original config is selected again. mLRS applies a change only after 0.75 s, so short dropouts
+// cause nothing. The channels keep being sent, so the mLRS TX keeps its baud rate after restarting.
+namespace mlrsfs {
+bool on = false;          // failsafe config selected
+uint8_t target = 0;       // config id to send
+uint8_t sendLeft = 0;     // repetitions left
+uint32_t tLast = 0;
+
+void select(uint8_t id) {
+    target = id;
+    sendLeft = 3;
+    tLast = 0;
+    hal::log("# mLRS: select config %u\n", unsigned(id));
+}
+
+void sendModelSelect(uint8_t id) {
+    Frame f;
+    Builder w(f, type::Command);
+    w.u8(addr::TX);
+    w.u8(addr::Handset);
+    w.u8(0x10); // CRSF command
+    w.u8(0x05); // set model selection
+    w.u8(id);
+    const uint8_t cmdCrc = crc8(&f.b[idx::type], w.size() - 2, 0xBA);
+    w.u8(cmdCrc);
+    w.finish();
+    relay::enqueueModule(f);
+}
+
+void tick(uint32_t now) {
+    if (!sendLeft || (tLast && now - tLast < 100)) return;
+    tLast = now ? now : 1;
+    --sendLeft;
+    sendModelSelect(target);
+}
+
+uint8_t failsafeId() { return uint8_t((mlrs::configId() + 1) % mlrs::ConfigNum); }
+} // namespace mlrsfs
+
 void enter(State s, uint32_t now) {
     state = s;
     stateSince = now;
@@ -864,7 +907,10 @@ void enter(State s, uint32_t now) {
         break;
     case State::UnConnected:
         hal::log("# UnCon\n");
-        if (settings.failsafe_mode == 0) {
+        if (mlrs::active() && mlrs::configKnown() && relay::enabled) {
+            mlrsfs::on = true; // relay stays enabled, see mlrsfs
+            mlrsfs::select(mlrsfs::failsafeId());
+        } else if (settings.failsafe_mode == 0) {
             relay::enabled = false;
             relay::chanPending = false;
         }
@@ -873,6 +919,10 @@ void enter(State s, uint32_t now) {
     case State::Run:
         hal::log("# Run\n");
         relay::enabled = true;
+        if (mlrsfs::on) {
+            mlrsfs::on = false;
+            mlrsfs::select(mlrs::configId());
+        }
         hal::led(hal::Led::Run);
         break;
     }
@@ -935,6 +985,8 @@ void init(uint32_t now) {
     buildMenu();
     callbacks(); // updateFromEeprom(): apply all stored settings
     state = State::Undefined;
+    mlrsfs::on = false;
+    mlrsfs::sendLeft = 0;
     stateSince = now;
     lastCheck = now;
     relay::lastUpdate = now;
@@ -958,7 +1010,8 @@ void onRelayFrame(const Frame& f, uint32_t now) {
 
 void tick(uint32_t now) {
     relay::tick(now);
-    mlrs::tick(now, relay::enabled);
+    mlrsfs::tick(now);
+    mlrs::tick(now, relay::enabled && !mlrsfs::on);
     fsm(now);
     ownTelemetry(now);
 }

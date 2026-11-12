@@ -46,6 +46,11 @@ void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data
 // call periodically; 'linkUp' = relay is sending to the module
 void tick(uint32_t now, bool linkUp);
 
+// 1.1.1: config id of the mLRS TX (from the first INFO after detection, "Receiver ID" in EdgeTX)
+bool configKnown();
+uint8_t configId();
+constexpr uint8_t ConfigNum = 10; // SETUP_CONFIG_NUM of mLRS
+
 // diagnostics
 const char* stateName();
 uint8_t paramsLoaded();

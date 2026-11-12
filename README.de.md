@@ -64,7 +64,7 @@ Original `RC-Relay32@205`).
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **Firmware** die Firmware-Version dieses Ports
-(z. B. `1.1.0`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.1.1`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
@@ -118,6 +118,15 @@ mLRS-Empfänger im Modell.
 * Im Halbduplex schickt das Relais einem mLRS-TX ein Paket pro Periode (wie EdgeTX): ein
   wartendes Paket ersetzt die Kanäle dieser Periode, statt angehängt zu werden, weil mLRS direkt
   nach dem ersten Paket antwortet (1.0.12).
+* **Failsafe** (1.1.1): Ein mLRS-TX sendet die letzten Kanalwerte weiter, wenn sein Eingang
+  ausfällt; das Relais kann also nicht einfach aufhören zu senden. Fällt Empfänger 1 aus, wählt das
+  Relais deshalb eine andere mLRS-Konfiguration (wie das Ändern der „Receiver ID“ in EdgeTX):
+  Config-ID + 1 (z. B. 0 → 1). Deren Bind Phrase ist eine andere (Standard „mlrs.N“), die
+  Verbindung zum Modell reißt ab und der mLRS-Empfänger geht in sein Failsafe. Ist Empfänger 1
+  zurück, wählt das Relais wieder die ursprüngliche Konfiguration, die Verbindung steht nach
+  einigen Sekunden wieder. Aussetzer unter 0,75 s bewirken nichts (mLRS übernimmt einen Wechsel
+  erst danach). **Das Modell nicht mit gleicher Bind Phrase auf Config-ID + 1 binden** und das
+  Failsafe vor dem Flug testen.
 * Empfohlen: LinkStat = Transform. Die Daten des Flugcontrollers (GPS, Akku, Lage, Flugmodus …)
   erzeugt der mLRS-TX aus MAVLink, sie kommen als normale Sensoren an.
 * **mLRS-Parameter im ELRS-Lua-Skript** (1.0.9, ab mLRS v1.4.04): Der mLRS-TX erscheint in der

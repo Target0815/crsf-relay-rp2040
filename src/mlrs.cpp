@@ -90,6 +90,8 @@ bool saving = false;
 bool saved = false;        // last save completed (info text "saved")
 uint32_t saveSince = 0;
 bool rxAvailable = false;
+bool cfgKnown = false;
+uint8_t cfgId = 0;
 DevItem devTx, devRx;
 MParam P[MaxParams];
 bool changed[MaxParams];   // 1.1.0: set but not yet saved
@@ -412,6 +414,8 @@ void reset() {
     saving = false;
     reloadAt = 0;
     rxAvailable = false;
+    cfgKnown = false;
+    cfgId = 0;
     devTx = DevItem{};
     devRx = DevItem{};
     for (auto& p : P) p = MParam{};
@@ -458,6 +462,11 @@ void onModuleFrame(const Frame& f, uint32_t now) {
     case mb::Info:
         rxAvailable = (d[5] & 0x01) != 0;
         paramNumInfo = d[8];
+        if (!cfgKnown && d[6] < ConfigNum) { // learned once: later the relay itself switches it (failsafe)
+            cfgKnown = true;
+            cfgId = d[6];
+            log("# mLRS: config id %u\n", cfgId);
+        }
         if (st == St::ReqInfo || st == St::WaitInfo) {
             st = St::Params;
             idx = 0;
@@ -516,6 +525,8 @@ void onModuleFrame(const Frame& f, uint32_t now) {
 }
 
 bool active() { return detected; }
+bool configKnown() { return cfgKnown; }
+uint8_t configId() { return cfgId; }
 bool loaded() { return structured; }
 uint8_t fieldCount() { return structured ? nF : 1; }
 
