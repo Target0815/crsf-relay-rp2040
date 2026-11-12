@@ -777,7 +777,7 @@ int main(int argc, char**) {
         CHECK(mlrs::loaded());
         CHECK(mlrs::paramsLoaded() == 8 && m.infoRequests == 1 && m.itemRequests == 8);
         const uint8_t N = mlrs::fieldCount();
-        CHECK(N == 14); // TX, RX, 3 common, Tx folder + 2, Rx folder + 1, Failsafe folder + 2, Save
+        CHECK(N == 15); // TX, RX, Save, General + 3, Tx + 2, Rx + 1, Rx Failsafe + 2
         // device info of the module reports the proxy parameters
         drainHandset();
         core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now);
@@ -816,12 +816,13 @@ int main(int argc, char**) {
         auto& ch2 = fld["Ch2"].second;
         CHECK(ch2.type == 1 && int8_t(ch2.rest[0]) == -50 && int8_t(ch2.rest[1]) == -120 && ch2.rest[2] == 120);
         CHECK(cstr(&ch2.rest[4], 4) == "%");
-        CHECK(fld["Failsafe"].second.type == 11 && fld["Failsafe"].second.parent == fld["Rx"].first);
-        CHECK(fld["Ch1"].second.parent == fld["Failsafe"].first);
+        CHECK(fld["Rx Failsafe"].second.type == 11 && fld["Rx Failsafe"].second.parent == 0);
+        CHECK(fld["Ch1"].second.parent == fld["Rx Failsafe"].first);
+        CHECK(fld["Mode"].second.parent == fld["General"].first && fld["Save"].first == 3);
         CHECK(fld["Save"].second.type == 13 && fld["Save"].second.rest[0] == 0);
         ParamInfo root;
         CHECK(readParam(now, 0, root, 0xCE));
-        CHECK(root.type == 11 && root.rest[0] == 1 && root.rest[1] == 2 && root.rest.back() == 0xff);
+        CHECK(root.type == 11 && root.rest[0] == 1 && root.rest[1] == 2 && root.rest[2] == 3 && root.rest.back() == 0xff);
         // writes
         const uint8_t iMode = fld["Mode"].first, iCh1 = fld["Ch1"].first, iSave = fld["Save"].first;
         core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iMode, 2}), now);
@@ -837,6 +838,18 @@ int main(int argc, char**) {
         CHECK(readParam(now, iMode, pm, 0xCE));
         cstr(pm.rest.data(), 60, &used);
         CHECK(pm.rest[used] == 2);
+        // 1.1.0: folders show unsaved changes; a ping (Lua restart) does not reload them away
+        ParamInfo fg, ffs;
+        CHECK(readParam(now, fld["General"].first, fg, 0xCE) && fg.name == "General (1 unsaved)");
+        CHECK(readParam(now, fld["Rx Failsafe"].first, ffs, 0xCE) && ffs.name == "Rx Failsafe (1 unsaved)");
+        {
+            const int ir0 = m.infoRequests;
+            for (int i = 0; i < 400; ++i) m.step(now);
+            core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now);
+            for (int i = 0; i < 100; ++i) m.step(now);
+            CHECK(m.infoRequests == ir0);
+            drainHandset();
+        }
         // save: store, command stays "executing" until the list was reloaded
         drainHandset();
         core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iSave, 1}), now);
@@ -853,7 +866,8 @@ int main(int argc, char**) {
         CHECK(m.infoRequests == ir + 1);
         drainHandset();
         CHECK(readParam(now, iSave, sv, 0xCE));
-        CHECK(sv.rest[0] == 0 && cstr(&sv.rest[2], 20) == "saved");
+        CHECK(sv.rest[0] == 0 && cstr(&sv.rest[2], 20) == "saved, reopen Lua");
+        CHECK(readParam(now, fld["General"].first, fg, 0xCE) && fg.name == "General");
         core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iSave, 6}), now); // lcsQuery
         h = drainHandset();
         CHECK(h.size() == 1 && h[0].type() == type::ParamEntry && h[0].b[5] == iSave);
@@ -868,6 +882,7 @@ int main(int argc, char**) {
         CHECK(cstr(rx.rest.data(), 30) == "not connected");
         CHECK(readParam(now, iCh1, c1, 0xCE) && (c1.type & 0x80));
         CHECK(readParam(now, fld["Rx"].first, rf, 0xCE) && rf.name == "Rx (no receiver)");
+        CHECK(readParam(now, fld["Rx Failsafe"].first, ffs, 0xCE) && ffs.name == "Rx Failsafe (no receiver)");
         core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iCh1, 10}), now); // rejected
         for (int i = 0; i < 3; ++i) m.step(now);
         CHECK(m.sets.size() == 2);

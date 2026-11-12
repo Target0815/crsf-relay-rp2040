@@ -63,7 +63,7 @@ The relay reports itself as `RC-Relay RP2040` (CRSF address 205 = 0xCD; up to 1.
 `RC-Relay32@205` like the original).
 TX module 2 appears at address 206 (0xCE), its receiver at 207 (0xCF).
 
-The first entry, **Firmware**, shows the firmware version of this port (e.g. `1.0.13`),
+The first entry, **Firmware**, shows the firmware version of this port (e.g. `1.1.0`),
 so the Lua script immediately shows that the RP2040 port is running and which version.
 **Total Retries** counts the parameter requests the relay has repeated since power-up
 (see item 7 under "Differences from the original"); a rising value indicates a weak link behind the relay.
@@ -123,9 +123,11 @@ e.g. internal ELRS module of the radio → ELRS receiver → relay → mLRS TX �
 * **mLRS parameters in the ELRS Lua script** (1.0.9, requires mLRS v1.4.04 or newer): the mLRS
   TX appears in the device list of the ELRS Lua script (e.g. "Matek mR900-30"). The relay loads
   its parameters in the background via mBridge (the protocol of the mLRS Lua script) and shows
-  them there: TX and RX name/version, common parameters, folders "Tx" and "Rx" (with "Failsafe"),
-  and the command **Save**. Changes take effect only after "Save", like in the mLRS Lua script;
-  afterwards the relay reloads the list. Rx parameters are shown only while the mLRS receiver is
+  them there: TX and RX name/version, the command **Save**, and the folders "General", "Tx", "Rx"
+  and "Rx Failsafe". Changes take effect only after "Save", like in the mLRS Lua script;
+  afterwards the relay reloads the list. A folder with changes not saved yet shows
+  "(n unsaved)" in its name (1.1.0); after "Save" the marks disappear when the Lua script is opened
+  again (it caches names). Rx parameters are shown only while the mLRS receiver is
   connected. Read-only: Bind Phrase (the ELRS Lua script cannot edit text), parameters with a
   single possible value. If the device shows "loading", leave the Lua script and open it again.
   Status in the USB console (`s`).

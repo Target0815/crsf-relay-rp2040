@@ -64,7 +64,7 @@ Original `RC-Relay32@205`).
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.13`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.1.0`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
@@ -123,9 +123,10 @@ mLRS-Empfänger im Modell.
 * **mLRS-Parameter im ELRS-Lua-Skript** (1.0.9, ab mLRS v1.4.04): Der mLRS-TX erscheint in der
   Geräteliste des ELRS-Lua-Skripts (z. B. „Matek mR900-30“). Das Relais lädt seine Parameter im
   Hintergrund per mBridge (das Protokoll des mLRS-Lua-Skripts) und zeigt sie dort an: Name/Version
-  von TX und RX, allgemeine Parameter, Ordner „Tx“ und „Rx“ (mit „Failsafe“) und den Befehl
-  **Save**. Änderungen wirken wie im mLRS-Lua-Skript erst nach „Save“; danach lädt das Relais die
-  Liste neu. Rx-Parameter erscheinen nur, solange der mLRS-Empfänger verbunden ist. Nur lesbar:
+  von TX und RX, den Befehl **Save** und die Ordner „General“, „Tx“, „Rx“ und „Rx Failsafe“.
+  Änderungen wirken wie im mLRS-Lua-Skript erst nach „Save“; danach lädt das Relais die Liste neu.
+  Ein Ordner mit noch nicht gespeicherten Änderungen zeigt „(n unsaved)“ im Namen (1.1.0); nach
+  „Save“ verschwindet die Markierung beim nächsten Öffnen des Lua-Skripts (es speichert Namen zwischen). Rx-Parameter erscheinen nur, solange der mLRS-Empfänger verbunden ist. Nur lesbar:
   Bind Phrase (das ELRS-Lua-Skript kann keinen Text bearbeiten) und Parameter mit nur einem
   möglichen Wert. Zeigt das Gerät „loading“, das Lua-Skript verlassen und neu öffnen.
   Status in der USB-Konsole (`s`).

@@ -67,7 +67,7 @@ struct DevItem {
 };
 
 enum class St : uint8_t { Off, ReqInfo, WaitInfo, Params, Done, Failed };
-enum Kind : uint8_t { KStatus, KInfoTx, KInfoRx, KFolderTx, KFolderRx, KFolderFs, KParam, KSave };
+enum Kind : uint8_t { KStatus, KInfoTx, KInfoRx, KFolderGen, KFolderTx, KFolderRx, KFolderFs, KParam, KSave };
 
 struct Field {
     uint8_t kind = KStatus;
@@ -92,6 +92,7 @@ uint32_t saveSince = 0;
 bool rxAvailable = false;
 DevItem devTx, devRx;
 MParam P[MaxParams];
+bool changed[MaxParams];   // 1.1.0: set but not yet saved
 Field F[MaxFields];        // field id n is F[n - 1]
 uint8_t nF = 0;
 bool structured = false;
@@ -194,30 +195,38 @@ uint8_t addField(uint8_t kind, uint8_t parent, uint8_t mi = 0) {
     return ++nF; // field id
 }
 
+// 1.1.0: all parameters are in folders directly below the root. The ELRS Lua script re-reads the
+// name of a folder when one of its entries was changed, so "(n unsaved)" in the folder name is
+// up to date when you go back to the root (other names are cached by the script).
 void buildFields() {
     nF = 0;
     addField(KInfoTx, 0);
     addField(KInfoRx, 0);
+    addField(KSave, 0);
+    const uint8_t fgen = addField(KFolderGen, 0);
     for (uint8_t i = 0; i < nParams; ++i) {
-        if (!isTx(P[i]) && !isRx(P[i])) addField(KParam, 0, i);
+        if (!isTx(P[i]) && !isRx(P[i])) addField(KParam, fgen, i);
     }
     const uint8_t ftx = addField(KFolderTx, 0);
     for (uint8_t i = 0; i < nParams; ++i) {
         if (isTx(P[i])) addField(KParam, ftx, i);
     }
     const uint8_t frx = addField(KFolderRx, 0);
+    for (uint8_t i = 0; i < nParams; ++i) {
+        if (isRx(P[i]) && !isFs(P[i])) addField(KParam, frx, i);
+    }
     uint8_t ffs = 0;
     for (uint8_t i = 0; i < nParams; ++i) {
-        if (!isRx(P[i])) continue;
-        if (isFs(P[i])) {
-            if (!ffs) ffs = addField(KFolderFs, frx);
-            addField(KParam, ffs, i);
-        } else {
-            addField(KParam, frx, i);
-        }
+        if (!isFs(P[i])) continue;
+        if (!ffs) ffs = addField(KFolderFs, 0);
+        addField(KParam, ffs, i);
     }
-    addField(KSave, 0);
     structured = true;
+}
+
+bool anyChanged() {
+    for (uint8_t i = 0; i < MaxParams; ++i) if (changed[i]) return true;
+    return false;
 }
 
 void finish(uint32_t now) {
@@ -302,8 +311,20 @@ void serializeParam(const Field& fl, Buf& c) {
 }
 
 void serializeFolder(uint8_t id, const char* name, Buf& c) {
+    unsigned n = 0;
+    for (uint8_t i = 0; i < nF; ++i) {
+        if (F[i].parent == id && F[i].kind == KParam && changed[F[i].mi]) ++n;
+    }
+    char t[40];
+    if (n) {
+        std::snprintf(t, sizeof t, "%s (%u unsaved)", name, n);
+    } else if (id != 0 && (F[id - 1].kind == KFolderRx || F[id - 1].kind == KFolderFs) && !rxAvailable) {
+        std::snprintf(t, sizeof t, "%s (no receiver)", name);
+    } else {
+        std::snprintf(t, sizeof t, "%s", name);
+    }
     c.u8(TFolder);
-    c.str(name);
+    c.str(t);
     for (uint8_t i = 0; i < nF; ++i) {
         if (F[i].parent == id) c.u8(uint8_t(i + 1));
     }
@@ -354,16 +375,17 @@ void serialize(uint8_t id, Buf& c) {
         }
         c.u8(TInfo); c.str("RX"); c.str(t);
         break;
+    case KFolderGen: serializeFolder(id, "General", c); break;
     case KFolderTx: serializeFolder(id, "Tx", c); break;
-    case KFolderRx: serializeFolder(id, rxAvailable ? "Rx" : "Rx (no receiver)", c); break;
-    case KFolderFs: serializeFolder(id, "Failsafe", c); break;
+    case KFolderRx: serializeFolder(id, "Rx", c); break;
+    case KFolderFs: serializeFolder(id, "Rx Failsafe", c); break;
     case KParam: serializeParam(fl, c); break;
     case KSave:
         c.u8(TCommand);
         c.str("Save");
         c.u8(saving ? 2 : 0);   // executing / ready
         c.u8(50);               // poll every 0.5 s
-        c.str(saving ? "saving..." : (saved ? "saved" : ""));
+        c.str(saving ? "saving..." : (saved ? "saved, reopen Lua" : ""));
         break;
     default:
         c.u8(TInfo); c.str("?"); c.str("");
@@ -393,6 +415,7 @@ void reset() {
     devTx = DevItem{};
     devRx = DevItem{};
     for (auto& p : P) p = MParam{};
+    for (auto& ch : changed) ch = false;
     cntRequests = cntRetries = 0;
 }
 
@@ -497,7 +520,8 @@ bool loaded() { return structured; }
 uint8_t fieldCount() { return structured ? nF : 1; }
 
 void onPing(uint32_t now) {
-    if (!detected || saving) return;
+    // no reload with unsaved changes: REQUEST_INFO makes the module reload its stored setup
+    if (!detected || saving || anyChanged()) return;
     if (st == St::Off || st == St::Failed || (st == St::Done && now - doneAt > SaveReloadMs)) {
         reloadAt = now; // started in tick()
     }
@@ -530,6 +554,7 @@ void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data
     if (fl.kind == KSave) {
         if (data[0] == 1 && !saving) {        // lcsClick
             sendCmd(mb::ParamStore, nullptr, 0);
+            for (auto& ch : changed) ch = false;
             saving = true;
             saved = false;
             saveSince = now;
@@ -557,6 +582,7 @@ void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data
         return;
     }
     p.val[0] = v;
+    changed[fl.mi] = true;
     const uint8_t set[7] = {fl.mi, v, 0, 0, 0, 0, 0};
     sendCmd(mb::ParamSet, set, sizeof set);
     log("# mLRS: set %u = %u\n", fl.mi, v);
