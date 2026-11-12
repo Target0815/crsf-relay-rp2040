@@ -981,9 +981,23 @@ size_t nextRelayBurst(uint8_t* buf, size_t cap) {
     };
     if (relay::chanPending) {
         relay::chanPending = false;
+        // 1.0.12: an mLRS TX module starts its reply 250 us after the first frame of a burst, so a
+        // frame appended to the channels would collide with it. Like EdgeTX with mLRS: a queued
+        // frame is sent instead of the channels of this period (at most every second period).
+        static bool skipped = false;
+        if (relay::half && mlrs::active() && !skipped) {
+            Frame o;
+            if (toModule.pop(o)) {
+                append(o);
+                skipped = true;
+                return n;
+            }
+        }
+        skipped = false;
         Frame c;
         relay::buildChannels(c);
         append(c);
+        if (relay::half && mlrs::active()) return n; // nothing appended for mLRS
         // channels + at most one queued frame per period (same in both modes)
         Frame o;
         if (toModule.pop(o)) append(o);

@@ -879,6 +879,31 @@ int main(int argc, char**) {
         m.mute = false;
         for (int i = 0; i < 1000 && std::string(mlrs::stateName()) != "loaded"; ++i) m.step(now);
         CHECK(std::string(mlrs::stateName()) == "loaded");
+        // 1.0.12: half duplex with mLRS: a queued frame is sent alone, never behind the channels
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 1}), now);
+        drainRelay(now, 3);
+        {
+            int alone = 0, chan = 0, mixed = 0;
+            uint8_t buf[256];
+            core::onInputFrame(make(type::Ping, {addr::Broadcast, addr::Handset}), now); // reload -> requests
+            for (int i = 0; i < 300; ++i) {
+                core::onInputFrame(channelsFrame(1000), now);
+                now += 10;
+                core::tick(now);
+                size_t nb;
+                while ((nb = core::nextRelayBurst(buf, sizeof buf)) > 0) {
+                    auto v = splitBurst(buf, nb);
+                    bool hasCh = false, hasOther = false;
+                    for (auto& f : v) { if (f.type() == type::Channels) hasCh = true; else hasOther = true; }
+                    if (hasCh && hasOther) ++mixed; else if (hasCh) ++chan; else ++alone;
+                    for (auto& f : v) for (auto& r : m.handle(f)) core::onRelayFrame(r, now);
+                }
+            }
+            CHECK(mixed == 0 && alone > 0 && chan >= alone);
+            CHECK(std::string(mlrs::stateName()) == "loaded");
+        }
+        core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 0}), now);
+        drainRelay(now, 3);
         // other TX module (ELRS) at the same address: proxy off, requests are forwarded again
         drainHandset();
         core::onRelayFrame(make(type::Info, {addr::Handset, addr::TX, 'B','a','n','d','i','t',0,

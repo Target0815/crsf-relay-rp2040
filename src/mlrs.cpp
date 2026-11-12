@@ -47,7 +47,7 @@ constexpr uint32_t InfoTimeoutMs = 3000;
 constexpr uint32_t RetryLaterMs = 5000;
 constexpr uint32_t SaveReloadMs = 3000;   // like paramLoadDeadTime in mLRS.lua
 constexpr uint32_t SaveMaxMs = 15000;
-constexpr uint8_t MaxRequestTries = 8;
+constexpr uint8_t MaxRequestTries = 12;
 
 struct MParam {
     bool valid = false;
@@ -331,7 +331,8 @@ void serialize(uint8_t id, Buf& c) {
         if (st == St::Failed) {
             std::snprintf(t, sizeof t, "no answer");
         } else {
-            std::snprintf(t, sizeof t, "loading %u/%u", unsigned(idx), unsigned(paramNumInfo));
+            // the Lua script reads this line only once: reopen it when loading is done
+            std::snprintf(t, sizeof t, "loading %u/%u, reopen", unsigned(idx), unsigned(paramNumInfo));
         }
         c.str(t);
         return;
@@ -594,7 +595,15 @@ void tick(uint32_t now, bool linkUp) {
         }
         break;
     case St::Failed:
-        if (now - tState >= RetryLaterMs) startLoad(now);
+        if (now - tState >= RetryLaterMs) {
+            if (paramNumInfo && idx > 0 && idx < paramNumInfo) { // 1.0.12: resume, do not start again at 0
+                st = St::Params;
+                tries = 0;
+                requestParam(now);
+            } else {
+                startLoad(now);
+            }
+        }
         break;
     default:
         break;

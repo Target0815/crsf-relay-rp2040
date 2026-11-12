@@ -63,7 +63,7 @@ Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.11`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.0.12`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
@@ -114,6 +114,9 @@ mLRS-Empfänger im Modell.
 * Der mLRS-TX erkennt Baudrate und Polarität nur ca. 6 s nach dem Einschalten. Er muss in dieser
   Zeit Kanäle vom Relais bekommen: erst die Funke einschalten, dann den Relais-Kasten (Relais und
   mLRS-TX gemeinsam).
+* Im Halbduplex schickt das Relais einem mLRS-TX ein Paket pro Periode (wie EdgeTX): ein
+  wartendes Paket ersetzt die Kanäle dieser Periode, statt angehängt zu werden, weil mLRS direkt
+  nach dem ersten Paket antwortet (1.0.12).
 * Empfohlen: LinkStat = Transform. Die Daten des Flugcontrollers (GPS, Akku, Lage, Flugmodus …)
   erzeugt der mLRS-TX aus MAVLink, sie kommen als normale Sensoren an.
 * **mLRS-Parameter im ELRS-Lua-Skript** (1.0.9, ab mLRS v1.4.04): Der mLRS-TX erscheint in der
