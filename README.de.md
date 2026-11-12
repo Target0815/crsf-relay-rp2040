@@ -1,263 +1,177 @@
 [English](README.md) | **Deutsch**
 
-# CRSF-Relay für RP2040
+# RC-Relay RP2040
 
-Portierung des **RC-Relay32** von Wilhelm Meier
-([wmucpp: `boards/rcRelay32`](https://github.com/wimalopaan/wmucpp/tree/master/boards/rcRelay32))
-vom WeAct STM32G031 auf den RP2040, Zielboard **Waveshare RP2040-Zero**.
+Ein Relais für Fernsteuerungen mit CRSF: Es verbindet zwei Funkstrecken hintereinander und
+verlängert so die Reichweite oder umgeht Abschattungen – den **Sender-Link** (Sender → Relais)
+und den **Modell-Link** (Relais → Modell).
 
-Das Relais verbindet zwei CRSF-Funkstrecken: Der Empfänger der ersten Strecke speist das Relais,
-das Relais steuert das Sendemodul der zweiten Strecke. Alle Geräte bleiben über `elrsV3.lua`
-(bzw. TBS Agent) erreichbar, die Telemetrie läuft kollisionsfrei zurück.
+![Einsatz des Relais](docs/relay-setup.de.svg)
 
-![Fliegen aus dem Auto mit dem CRSF-Relais](docs/relay-setup.de.svg)
+Das Relais steht dort, wo es freie Sicht zum Modell hat – auf einem Stativ, auf dem
+Autodach oder einem Aussichtsturm. Der Sender bleibt beim Piloten, zum Beispiel im Auto.
+Geeignet für Flugmodelle, RC-Cars und Boote.
 
-Ein typischer Einsatz: Der Sender bleibt im Auto, die Karosserie schirmt das Funksignal aber ab.
-Ein Empfänger mit dem Relais und einem zweiten Sendemodul steht deshalb draußen auf einem Stativ.
-Die kurze erste Funkstrecke reicht vom Auto bis zum Stativ, die zweite Strecke vom Stativ zum
-Flugmodell hat freie Sicht und volle Reichweite.
+> **Benutzung auf eigene Gefahr.** Das Failsafe-Verhalten vor jedem Einsatz am Boden testen
+> (siehe [Failsafe](#failsafe)).
 
-## Flashen
+## Was das Relais kann
 
-1. Die aktuelle UF2-Datei unter **Releases** herunterladen (`crsf-relay-<version>-rp2040-zero.uf2`).
-2. RP2040-Zero mit gedrückter **BOOT**-Taste an USB anstecken. Es erscheint das Laufwerk `RPI-RP2`.
-3. Die UF2-Datei auf das Laufwerk kopieren. Fertig.
+* **Modell-Link mit ELRS oder mLRS** – das Relais erkennt den Modultyp selbst.
+* **Alles über das ELRS-Lua-Skript einstellen:** das Relais selbst, das Sendemodul des Relais und
+  den Empfänger im Modell. Bei mLRS zeigt das Relais auch die mLRS-Parameter im ELRS-Lua an.
+* **Telemetrie** vom Modell (GPS, Akku, Flugmodus …) kommt wie gewohnt am Sender an,
+  die Werte beider Funkstrecken bleiben getrennt.
+* **Failsafe:** Fällt der Sender-Link aus (z. B. Sender aus), geht das Modell in sein Failsafe.
+* **Schnelles Lua-Menü:** verlorene Anfragen wiederholt das Relais selbst.
+* Halbduplex (Modulschacht/JR-Pin) und Vollduplex, Watchdog, USB-Konsole zur Diagnose.
 
-Ist die Firmware bereits drauf, geht es auch ohne Taste: Im USB-Terminal `b` senden,
-oder `picotool load -f -x crsf-relay-…uf2` verwenden.
+## Was man braucht
 
-## Anschluss (RP2040-Zero)
+* einen **Sender mit ELRS-Sendemodul** (intern oder extern) für den Sender-Link, z. B. RadioMaster TX15
+* **Waveshare RP2040-Zero** (oder ein anderes RP2040-Board, Pins siehe unten)
+* einen **CRSF-Empfänger** für den Sender-Link, z. B. RadioMaster ER3C-i (ELRS)
+* ein **Sendemodul** für den Modell-Link: ELRS-Modul (z. B. RadioMaster Bandit Nano) oder mLRS-TX
+  (z. B. MatekSys mR900-30, ab mLRS v1.4.04)
 
-| RP2040-Zero | Signal                                   | Original (WeAct) |
-|-------------|------------------------------------------|------------------|
-| GP0         | → RX des Empfängers 1 (CRSF-Eingang)     | PA2              |
-| GP1         | ← TX des Empfängers 1                    | PA3              |
-| GP4         | → RX des Sendemoduls 2 (Vollduplex) **bzw. die Signalleitung im Halbduplex** | PA9 |
-| GP5         | ← TX des Sendemoduls 2 (nur Vollduplex)  | PA10             |
-| GP29        | Versorgungsspannung über Teiler (optional) | –              |
-| GP16        | RGB-LED auf der Platine                   | PA4 (LED)        |
-| GND, 5V     | gemeinsame Masse, Versorgung              |                  |
+## Firmware aufspielen
 
-* Alle Signale sind 3,3-V-Pegel, nicht invertiert (CRSF-Standard). Interne Pull-ups sind aktiv.
-  Die Relais-Seite lässt sich über den Menüpunkt „Inverted“ invertieren (z. B. für mLRS, siehe unten).
-* **Vollduplex** (ELRS-Empfänger als Sender, „RX-as-TX“): GP4/GP5 kreuzen wie gewohnt.
-* **Halbduplex** (JR-Bay- bzw. externes ELRS-Modul): nur **GP4** an den CRSF-/S.Port-Pin des Moduls.
-  Im Menü „Half-Duplex“ auf „On“ stellen. Externe Module brauchen ihre eigene Versorgung
-  (meist 5–8,4 V und je nach Sendeleistung mehr als 1 A), nicht aus dem 3,3-V-Pin des RP2040-Zero.
-* Spannungsmessung (optional, seit 1.0.11 nur mit `HAS_VSENSE=1` beim Bauen): Vin – 33 kΩ – GP29 –
-  10 kΩ – GND (bis ca. 14 V). Andere Werte über
-  `VSENSE_R1`/`VSENSE_R2` beim Bauen. Ohne Teiler `HAS_VSENSE` auf 0 lassen (der offene Pin liefert
-  Zufallswerte); mit Teiler erscheint die Spannung im Menü und bei „Own Telemetry“.
+1. Die UF2-Datei unter **Releases** herunterladen (`crsf-relay-<version>-rp2040-zero.uf2`).
+2. RP2040-Zero mit gedrückter **BOOT**-Taste an USB anstecken, es erscheint das Laufwerk `RPI-RP2`.
+3. Die UF2-Datei darauf kopieren. Einstellungen bleiben bei einem Update erhalten.
 
-## LED
+## Anschluss
 
-| Farbe / Muster                    | Zustand                                       |
-|-----------------------------------|-----------------------------------------------|
-| blau, dauerhaft                   | Init: wartet auf Empfänger 1                  |
-| grün, 2× langsam                  | Run: Kanaldaten von Empfänger 1 (Halbduplex: cyan) |
-| rot, 1× schnell                   | keine Kanaldaten von Empfänger 1              |
+| RP2040-Zero | geht an                                                       |
+|-------------|---------------------------------------------------------------|
+| GP0         | RX des Empfängers (Sender-Link)                               |
+| GP1         | TX des Empfängers (Sender-Link)                               |
+| GP4         | Sendemodul: **Halbduplex** – die eine Signalleitung (JR-Pin 5 / „In“); **Vollduplex** – RX des Moduls |
+| GP5         | Sendemodul: nur Vollduplex – TX des Moduls                    |
+| 5V, GND     | Versorgung 5 V, gemeinsame Masse aller Geräte                 |
 
-## Menü (elrsV3.lua)
+Alle Signale haben 3,3-V-Pegel. Die Polarität der Modulseite stellt man im Menü ein
+(„Inverted“, siehe Tabelle).
 
-Das Relais meldet sich als `RC-Relay RP2040` (CRSF-Adresse 205 = 0xCD; bis 1.0.12 hieß es wie das
-Original `RC-Relay32@205`).
-Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
+> **Hinweis:** Mit echter Hardware getestet ist bisher nur der **Halbduplex**-Betrieb
+> (ELRS: RadioMaster Bandit Nano, mLRS: MatekSys mR900-30). Vollduplex ist umgesetzt, aber nur
+> ohne Hardware geprüft.
 
-Ganz oben zeigt der Eintrag **Firmware** die Firmware-Version dieses Ports
-(z. B. `1.1.3`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
-welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
-Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
+> **Achtung USB:** Beim RP2040-Zero ist 5V direkt mit der USB-Buchse verbunden. Vor dem Anstecken
+> an den PC die externe 5-V-Leitung abklemmen (GND verbunden lassen) oder einen USB-Power-Blocker
+> verwenden.
 
-Menü (seit 1.0.11): Info-Block (Firmware, Watchdog, Total Retries, [Supply Volt.],
-Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), **Telemetry** (Off/Forward), Forward Rate,
-ArduPilot (Off/Forward/Tunnel), Half-Duplex, Baudrate (400k/420k/460k/921k/1,87M),
-**Inverted** (Off/On), Own Telemetry.
+## Einstellungen auf einen Blick
 
-* **LinkStat** regelt alle Linkstatistiken von Modul 2: 0x14 wie eingestellt, die Frames 0x1C/0x1D
-  (schickt z. B. mLRS) werden nur bei „Forward“ weitergegeben, sonst kämen die umgewandelten Werte doppelt.
-* **Telemetry** ersetzt den Ordner „Telemetry forwarding“ des Originals (je Sensortyp ein Eintrag,
-  bis 1.0.8): alle Telemetrietypen dieser Liste werden weitergegeben oder nicht. Einzelne
-  Sensortypen zu tunneln ist nicht mehr möglich.
+Im ELRS-Lua-Skript das Gerät **RC-Relay RP2040** wählen.
 
-Seit 1.0.8 stehen folgende Menüpunkte des Originals nicht mehr im Menü; ihre Werte sind fest auf
-die Standardwerte gesetzt (gespeicherte Werte älterer Versionen werden ignoriert): Version(HW/SW),
-CRSF Address (205), TX/RX Rewrite Address (206/207), TX Rewrite Name, Rewrite Name (aus),
-**Failsafe (fest „Forward“: das Relais stoppt, wenn Empfänger 1 ausfällt, und das Modell geht in
-sein eigenes Failsafe)**, Telem. Off Dur. (30 s). Die Einstellung „Hold“ des Originals sendete die
-letzten Kanalwerte weiter und verhinderte so das Failsafe des Modells.
+| Menüpunkt     | mit ELRS-Modul                                   | mit mLRS-Modul             | Bedeutung |
+|---------------|--------------------------------------------------|----------------------------|-----------|
+| Half-Duplex   | **On** (Modulschacht) / Off (Empfänger als Sender) | **On**                   | eine Signalleitung (GP4) oder zwei (GP4/GP5) |
+| Baudrate      | 921k (Standard)                                  | **400k**                   | Geschwindigkeit zum Sendemodul |
+| Inverted      | **Off**                                          | **On**                     | Polarität der Modulseite |
+| LinkStat      | Transform                                        | Transform                  | wie die Werte des Modell-Links am Sender ankommen |
+| Telemetry     | Forward                                          | Forward                    | Telemetrie vom Modell an den Sender |
+| Forward Rate  | 2                                                | 2                          | jede n-te Telemetriemeldung weitergeben (entlastet den Sender-Link) |
+| ArduPilot     | Forward (bei ArduPilot-FC)                       | egal                       | ArduPilot-Telemetrie (Yaapu-Widget) |
+| Own Telemetry | nach Wunsch                                      | nach Wunsch                | Chiptemperatur des Relais als Sensor |
 
-Neu:
+**Fett** = vom Standard abweichend bzw. wichtig.
 
-* **ArduPilot** (Off/Forward/Tunnel, Standard Forward): ArduPilot-Passthrough-Telemetrie
-  (CRSF-Typ 0x80, z. B. für Yaapu). Sie wird während eines Lua-Zugriffs wie alle Telemetrie
-  pausiert, und die Forward Rate gilt getrennt je Telemetriewert (AppId), damit kein Wert
-  ausgedünnt wird. Statustexte werden nie ausgedünnt. INAV sendet keinen Typ 0x80, dort hat
-  der Menüpunkt keine Wirkung. Im Tunnel-Modus werden Sammelpakete, die zusammen mit dem
-  Tunnel-Kopf über 64 Byte kämen, verworfen.
+Am **mLRS-Modul** und **mLRS-Empfänger** (über das Relais im ELRS-Lua oder am Modul-Display):
 
-Neu (aus der ToDo-Liste des Originals):
+| mLRS-Parameter      | Wert                       |
+|---------------------|----------------------------|
+| Tx Ch Source        | crsf (Standard)            |
+| Rx Out Mode         | crsf (an den Flugcontroller) |
+| Rx Failsafe Mode    | nach Wunsch, z. B. „no signal“ |
+| Config-ID + 1       | **nicht** mit gleicher Bind Phrase an dieses Modell binden (siehe Failsafe) |
 
-* **Watchdog**: Anzahl der Watchdog-Resets seit dem Einschalten (Watchdog 500 ms)
-* **Supply Volt.** (nur mit `HAS_VSENSE=1`) und **Chip Temp.**: Anzeige im Menü
-* **Own Telemetry**: sendet die Chiptemperatur (0x0D) und mit `HAS_VSENSE=1` die Spannung (CRSF 0x0E) einmal pro Sekunde
-  mit der Relais-Adresse als Sensor-ID. In EdgeTX erscheinen sie als eigene Sensoren und kollidieren
-  nicht mit den Sensoren des Modells. Standard: aus.
+## Inbetriebnahme
 
-## mLRS als Link 2 (experimentell)
+1. **Erst den Sender einschalten, dann das Relais.** (Ein mLRS-Modul sucht seine
+   Einstellungen nur in den ersten Sekunden nach dem Einschalten.)
+2. Die LED am RP2040-Zero zeigt den Zustand:
 
-Das Relais kann statt eines ELRS-Moduls ein mLRS-TX-Modul ansteuern (getestet: MatekSys
-mR900-30 als TX), z. B. internes ELRS-Modul der Funke → ELRS-Empfänger → Relais → mLRS-TX →
-mLRS-Empfänger im Modell.
+   | LED                     | Zustand |
+   |-------------------------|---------|
+   | blau, dauerhaft         | Start, wartet auf den Empfänger |
+   | grün, 2× blinken        | läuft (Halbduplex: cyan) |
+   | rot, 1× kurz            | keine Daten vom Empfänger (Sender-Link weg) |
 
-* Halbduplex: GP4 an JR-Pin 5 bzw. „In“ des mLRS-TX, „Half-Duplex“ = On.
-* mLRS erwartet CRSF bei 400k/921k/1,87M **invertiert**, nicht invertiert nur mit 416 666 Baud.
-  Also entweder „Baudrate“ = 420k mit „Inverted“ = Off oder 400k/921k mit „Inverted“ = On.
-* Der mLRS-TX erkennt Baudrate und Polarität nur ca. 6 s nach dem Einschalten. Er muss in dieser
-  Zeit Kanäle vom Relais bekommen: erst die Funke einschalten, dann den Relais-Kasten (Relais und
-  mLRS-TX gemeinsam).
-* Im Halbduplex schickt das Relais einem mLRS-TX ein Paket pro Periode (wie EdgeTX): ein
-  wartendes Paket ersetzt die Kanäle dieser Periode, statt angehängt zu werden, weil mLRS direkt
-  nach dem ersten Paket antwortet (1.0.12).
-* **Failsafe** (1.1.1): Ein mLRS-TX sendet die letzten Kanalwerte weiter, wenn sein Eingang
-  ausfällt; das Relais kann also nicht einfach aufhören zu senden. Fällt Empfänger 1 aus, wählt das
-  Relais deshalb eine andere mLRS-Konfiguration (wie das Ändern der „Receiver ID“ in EdgeTX):
-  Config-ID + 1 (z. B. 0 → 1). Deren Bind Phrase ist eine andere (Standard „mlrs.N“), die
-  Verbindung zum Modell reißt ab und der mLRS-Empfänger geht in sein Failsafe. Ist Empfänger 1
-  zurück, wählt das Relais wieder die ursprüngliche Konfiguration, die Verbindung steht nach
-  einigen Sekunden wieder. Aussetzer unter 0,75 s bewirken nichts (mLRS übernimmt einen Wechsel
-  erst danach). **Das Modell nicht mit gleicher Bind Phrase auf Config-ID + 1 binden** und das
-  Failsafe vor dem Flug testen.
-* **Modulwechsel nur stromlos** (Designentscheidung): Das Relais erkennt einen mLRS-TX an seinen
-  Frames 0x82 und behält das bis zum nächsten Einschalten (bewusst ohne Timeout: ein Timeout würde
-  das mLRS-Failsafe abschalten, wenn diese Frames eine Zeit lang fehlen). Ein Tausch im laufenden
-  Betrieb wird nicht unterstützt – wie das Ziehen eines Moduls aus einem laufenden Sender.
-* Empfohlen: LinkStat = Transform. Die Daten des Flugcontrollers (GPS, Akku, Lage, Flugmodus …)
-  erzeugt der mLRS-TX aus MAVLink, sie kommen als normale Sensoren an.
-* **mLRS-Parameter im ELRS-Lua-Skript** (1.0.9, ab mLRS v1.4.04): Der mLRS-TX erscheint in der
-  Geräteliste des ELRS-Lua-Skripts (z. B. „Matek mR900-30“). Das Relais lädt seine Parameter im
-  Hintergrund per mBridge (das Protokoll des mLRS-Lua-Skripts) und zeigt sie dort an: Name/Version
-  von TX und RX, den Befehl **Save** und die Ordner „General“, „Tx“, „Rx“ und „Rx Failsafe“.
-  Änderungen wirken wie im mLRS-Lua-Skript erst nach „Save“; danach lädt das Relais die Liste neu.
-  Ein Ordner mit noch nicht gespeicherten Änderungen zeigt „(n unsaved)“ im Namen (1.1.0); nach
-  „Save“ verschwindet die Markierung beim nächsten Öffnen des Lua-Skripts (es speichert Namen zwischen). Rx-Parameter erscheinen nur, solange der mLRS-Empfänger verbunden ist. Nur lesbar:
-  Bind Phrase (das ELRS-Lua-Skript kann keinen Text bearbeiten) und Parameter mit nur einem
-  möglichen Wert. Zeigt das Gerät „loading“, das Lua-Skript verlassen und neu öffnen.
-  Status in der USB-Konsole (`s`).
+3. Im ELRS-Lua erscheinen: das Sendemodul des Senders, der Empfänger des Relais,
+   **RC-Relay RP2040**, das Sendemodul des Relais und der Empfänger im Modell (bei ELRS).
 
-## USB-Konsole
+## Das Menü des Relais
 
-> **Achtung:** Beim RP2040-Zero ist der 5V-Pin direkt mit der USB-Buchse verbunden (keine Diode).
-> Vor dem Anstecken von USB die externe 5-V-Leitung zum RP2040-Zero abklemmen, **GND verbunden
-> lassen**. Sonst speist die externe Versorgung in den USB-Port des Rechners zurück (Neustart oder
-> Schaden am Port möglich). Alternativ ein USB-Kabel ohne 5-V-Ader („USB Power Blocker“) verwenden.
+| Eintrag        | Bedeutung |
+|----------------|-----------|
+| Firmware       | Version der Relais-Firmware |
+| Watchdog       | Anzahl Neustarts durch den Watchdog (sollte 0 bleiben) |
+| Total Retries  | wiederholte Menü-Anfragen seit dem Einschalten (steigt bei schwacher Verbindung) |
+| Chip Temp.     | Temperatur des RP2040 |
+| übrige Einträge | siehe [Einstellungen auf einen Blick](#einstellungen-auf-einen-blick) |
 
-Das Relais meldet sich als serielles USB-Gerät (beliebiges Terminal, Baudrate egal).
-Es gibt Debug-Meldungen wie im Original (`# Run`, `# UnCon`, …) und diese Befehle:
+**LinkStat** im Detail: *Transform* zeigt die Werte des Modell-Links als eigene Sensoren (RRSP, TRSP,
+RPWR, TFPS), ohne die Werte des Sender-Links zu stören. *Forward* gibt sie unverändert weiter (dann
+springen die Sensoren zwischen beiden Strecken), *Tunnel* verpackt sie für Lua-Skripte/Widgets,
+*Off* verwirft sie.
 
-| Taste | Funktion |
-|-------|----------|
-| `s`   | Status: Zustand, Paketzähler, CRC-/Rahmenfehler, Spannung, Temperatur |
-| `p`   | Parameter-Protokoll an/aus: Zeitstempel jeder Anfrage an Modul 2 / Empfänger 2 und jeder Antwort |
-| `b`   | Neustart in den UF2-Bootloader |
-| `r`   | Neustart |
-| `d`   | Werkseinstellungen und Neustart |
+## mLRS: Parameter im ELRS-Lua
 
-## Unterschiede zum Original
+Das mLRS-Modul erscheint in der Geräteliste (z. B. **Matek mR900-30**). Das Relais lädt die
+mLRS-Parameter nach dem Einschalten im Hintergrund und zeigt sie dort an:
 
-Die Logik entspricht `package_relay_rewrite.h`, `crsf_2*.h`, `crsf_cb.h` und `gfsm.h`
-im Stand vom 8.11.2026. Übernommen aus dieser Überarbeitung: Das Relais startet ausgeschaltet und
-wird erst im Zustand „Run“ aktiv. „Run“ wird auch ohne Linkstatistik erreicht, wenn nur Kanalpakete
-ankommen (direkte Verbindung). Ungültige Parameterwerte werden abgelehnt und nicht gespeichert.
+* oben: TX und RX mit Name und Version, darunter **Save**
+* Ordner **General**, **Tx**, **Rx** und **Rx Failsafe**
 
-Bewusste Abweichungen:
+Änderungen wirken – wie im mLRS-Lua – erst nach **Save**. Ordner mit noch nicht gespeicherten
+Änderungen zeigen „(n unsaved)“ im Namen. Nach dem Speichern das Lua einmal schließen und neu
+öffnen, dann sind die Markierungen weg.
 
-1. **Halbduplex-Zeitverhalten**: Nachrichten an das Modul (Ping, Parameter, Kommandos) werden
-   direkt hinter einem Kanalpaket im selben Burst gesendet, eine pro 10-ms-Periode, so wie
-   EdgeTX es macht. Dadurch können sie nicht mit der Antwort des Moduls kollidieren.
-   Vollduplex läuft wie im Original.
-2. **Keine Mittelwerte vor dem ersten Kanalpaket**: Kanäle werden erst nach dem ersten echten
-   Kanalpaket weitergegeben. Seit dem 8.11.2026 verhindert das Original dies ebenfalls, über den
-   ausgeschalteten Start. Hier gilt zusätzlich die Prüfung auf echte Kanaldaten.
-3. **„Telem. Off Dur.“ in echten Sekunden**: Im Original läuft der Zähler mit halber Dauer
-   (dort inzwischen in der README dokumentiert).
-4. **Speed-Kommando** bei Rahmenfehlern schlägt die eingestellte Baudrate vor (Original: immer 400k)
-   und enthält die vom CRSF-Standard verlangte Kommando-CRC. ELRS ignoriert dieses Kommando ohnehin.
-   ELRS-Module erkennen Baudrate und Invertierung selbst.
-5. **Parser**: Der Eingangsparser synchronisiert sich nach CRC-Fehlern Byte für Byte neu,
-   statt den Rest des Bursts zu verwerfen. TX-Name und Tunnel-Pakete werden wie im aktuellen
-   Original sicher begrenzt.
-6. **Einstellungen** liegen im letzten Flash-Sektor (mit Prüfsumme). Sie werden 0,5 s nach der
-   letzten Änderung gespeichert, damit mehrere Änderungen aus dem Lua-Skript nur einen
-   Schreibvorgang auslösen. Einstellungen älterer Versionen werden beim Update übernommen,
-   neue Menüpunkte bekommen ihren Standardwert.
-7. **Wiederholung von Parameteranfragen**: Das ELRS-Lua-Skript wartet bei allen Geräten außer dem
-   eigenen Sendemodul 5 s, bevor es eine unbeantwortete Anfrage wiederholt. Hinter dem Relais geht
-   gelegentlich eine Antwort auf der Seite von Modul 2 verloren, das kostete jedes Mal 5 s.
-   Das Relais wiederholt Leseanfragen an alle Geräte hinter sich (Modul 2, Empfänger 2 und z. B.
-   den ArduPilot-Flugcontroller unter 0xC8) jetzt selbst, wenn die Antwort ausbleibt: nach dem
-   Dreifachen der gemessenen Laufzeit, mindestens 0,1 s (Modul 2) bzw. 0,5 s (über Funk),
-   höchstens 1,5 s, bis zu dreimal. Doppelte Antworten durch diese Wiederholungen werden verworfen.
-   Schreibanfragen werden nie wiederholt. Zähler: `s` in der USB-Konsole.
-8. **ArduPilot-Telemetrie (0x80)**: Das Original behandelt diesen Typ wie ein Paket mit
-   Ziel-/Quelladresse. Es leitet ihn deshalb immer weiter, auch während die Telemetrie für den
-   Lua-Zugriff pausiert, und schreibt die Bytes 3 und 4 um, falls sie wie Adressen aussehen.
-   Hier ist 0x80 normale Telemetrie mit eigenem Menüpunkt (siehe oben).
-9. **IrDA** entfällt (beim WeAct-Build ohnehin nicht aktiv, der RP2040 hat kein IrDA).
-10. **Verkleinertes Menü und festes Failsafe** (1.0.8), siehe „Menü“.
-11. **TFPS bei LinkStat = Transform** (1.0.8): Bis 1.0.7 wurde der RF-Modus der
-    Linkstatistik in das Feld für die Paketrate kopiert; EdgeTX zeigte so z. B. 310 Hz für den mLRS-31-Hz-Modus.
-    Bekannte Modi werden jetzt umgerechnet (CRSF 4/50/150/250 Hz, mLRS 19/31/111 Hz), unbekannte ergeben 0.
-12. **Ein Telemetrie-Schalter statt Ordner** (1.0.9), siehe „Menü“.
-13. **mLRS-Parameter-Proxy** (1.0.9), siehe „mLRS als Link 2“.
+Hinweise:
+* Steht dort „loading …, reopen“, lädt das Relais noch: Lua schließen und nach ein paar Sekunden
+  neu öffnen.
+* Rx-Parameter erscheinen nur, wenn der mLRS-Empfänger im Modell verbunden ist.
+* Die Bind Phrase ist nur lesbar (das ELRS-Lua kann keinen Text bearbeiten).
 
-Die Punkte 7 und 8 sind inzwischen auch ins Original übernommen (V17), Punkt 1 ist dort vorgeschlagen.
+## Failsafe
 
-Die Protokolllogik ist mit Host-Tests geprüft (`test/test_core.cpp`), die Halbduplex-PIO-Programme
-mit einem Zyklus-Simulator (`test/pio_sim.py`). Beides läuft bei jedem Push automatisch.
+* **ELRS:** Fällt der Sender-Link aus, hört das Relais auf zu senden. Das ELRS-Modul stellt die Verbindung
+  zum Modell ein, der Empfänger im Modell geht in sein Failsafe.
+* **mLRS:** Ein mLRS-Modul würde ohne Eingangssignal einfach die letzten Werte weitersenden.
+  Das Relais schaltet deshalb bei Ausfall des Sender-Links auf eine andere mLRS-Konfiguration um
+  (Config-ID + 1, wie das Ändern der „Receiver ID“ in EdgeTX). Die Verbindung zum Modell reißt
+  ab, der mLRS-Empfänger geht in sein Failsafe. Kommt der Sender-Link zurück, schaltet das Relais zurück,
+  nach einigen Sekunden steht die Verbindung wieder. Aussetzer unter 0,75 s bewirken nichts.
+  Wichtig: Die Konfiguration Config-ID + 1 darf nicht mit derselben Bind Phrase gebunden sein
+  (Standard „mlrs.0“, „mlrs.1“ … ist in Ordnung).
+* **Relais stromlos:** Wird das Sendemodul des Relais aus derselben Quelle versorgt, ist es dann
+  ebenfalls aus, und das Modell geht in sein Failsafe.
 
-## Bauen
+**Test:** Modell sicher am Boden, Sender ausschalten → Flugcontroller bzw. Modell muss Failsafe
+melden. Sender wieder ein → Verbindung muss zurückkommen.
 
-GitHub Actions baut die Firmware bei jedem Push automatisch und führt die Tests aus
-(Download unter „Actions“ → Lauf → „Artifacts“). Bei einem Tag `v<version>` oder einem auf
-GitHub veröffentlichten Release wird die UF2-Datei angehängt.
+## Fehlersuche
 
-Lokal: Pico SDK 2.1.1, CMake, Ninja, arm-none-eabi-gcc:
+| Problem | Lösung |
+|---------|--------|
+| mLRS: keine Steuerung, keine Telemetrie | Baudrate 400k und Inverted On prüfen; erst Sender, dann Relais einschalten |
+| mLRS mit 921k geht nicht | bei 400k bleiben – reicht für alle mLRS-Modi |
+| Relais-Menü lädt langsam | normal beim ersten Öffnen; „Total Retries“ zeigt Wiederholungen |
+| Sensoren springen zwischen zwei Werten | LinkStat auf Transform stellen |
+| LED rot | Empfänger des Relais hat keine Verbindung zum Sender bzw. keine Kanäle |
 
-```sh
-export PICO_SDK_PATH=/pfad/zum/pico-sdk
-./build_all.sh                      # -> dist/crsf-relay-<version>-rp2040-zero.uf2
-```
+## USB-Konsole (für Diagnose)
 
-Andere Pins: z. B. `cmake -B build -DPIN_RELAY_TX=8 -DPIN_RELAY_RX=9 .`
-(GP8/9 sind ebenfalls UART1). Für einen Raspberry Pi Pico: `-DPICO_BOARD=pico`.
-Die RGB-LED gibt es dort nicht, sonst ist alles gleich.
+RP2040-Zero per USB an den PC (Warnung oben beachten), beliebiges Terminalprogramm:
+`s` Status · `p` Protokoll der Menü-Anfragen an/aus · `b` Bootloader (Update) · `r` Neustart ·
+`d` Werkseinstellungen.
 
-Tests:
+## Herkunft und Lizenz
 
-```sh
-cd test && g++ -std=c++17 -I../src test_core.cpp ../src/core.cpp -o test_core && ./test_core
-python3 test/pio_sim.py build/rp2040-zero/hd_uart.pio.h
-```
+Basiert auf dem **RC-Relay32** von Wilhelm Meier
+([wmucpp](https://github.com/wimalopaan/wmucpp/tree/master/boards/rcRelay32)), portiert auf den
+RP2040 und erweitert (u. a. mLRS). Lizenz: GPL-3.0-or-later.
 
-## Struktur
-
-| Datei | Inhalt |
-|-------|--------|
-| `src/crsf.h`      | CRSF-Konstanten, CRC, Frame-Builder, Stream-Parser, Queue |
-| `src/core.cpp`    | Relais-Logik, Menü, Geräteinfo, Zustandsmaschine (hardwareunabhängig) |
-| `src/mlrs.cpp`    | mLRS-Parameter-Proxy (mBridge ↔ ELRS-Parameterprotokoll) |
-| `src/ports.cpp`   | UART0/UART1 mit IRQ-Empfang und DMA-Senden, PIO-Halbduplex |
-| `src/hd_uart.pio` | Halbduplex-UART-Programme (Senden mit Leitungsfreigabe, Empfangen mit Rahmenprüfung) |
-| `src/main.cpp`    | Hauptschleife, Flash-Speicher, LED, ADC, Watchdog, USB-Konsole |
-| `src/config.h`    | Pins, Spannungsteiler, Versionsnummern |
-
-## Haftungsausschluss
-
-Die Benutzung erfolgt auf eigene Gefahr. Das Relais steht im Steuerweg zum Flugmodell: Prüfe vor
-jedem Flug Reichweite, Failsafe-Verhalten und Telemetrie am Boden und beachte die für dich
-geltenden Regeln für den Modellflug. Eine Gewähr für Funktion oder Eignung wird nicht übernommen
-(siehe auch GPL-3.0, Abschnitte 15 und 16).
-
-## Lizenz
-
-GPL-3.0-or-later wie das Original. Original: Copyright (C) 2019–2026 Wilhelm Meier.
+Fragen, Probleme oder Ideen bitte als [Issue](../../issues) auf GitHub.

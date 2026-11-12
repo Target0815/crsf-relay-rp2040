@@ -2,3 +2,7 @@ build/
 dist/
 test/test_core
 *.o
+DEVELOPER*.md
+TODO.md
+entwurf/
+Trace*.txt
