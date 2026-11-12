@@ -5,7 +5,7 @@
 #pragma once
 
 #define FW_NAME      "crsf-relay"
-#define FW_VERSION   "1.0.10"
+#define FW_VERSION   "1.0.11"
 
 // shown in elrsV3.lua / TBS Agent as "<DEVICE_TITLE><address>", e.g. RC-Relay32@205
 #ifndef DEVICE_TITLE
@@ -33,6 +33,12 @@
 #endif
 #ifndef PIN_VSENSE
 #define PIN_VSENSE    29  // ADC3, supply voltage via divider
+#endif
+
+// 1.0.11: supply voltage measurement only if a divider is fitted (otherwise the open pin gives
+// random values). 0 = no menu entry "Supply Volt." and no voltage in "Own Telemetry".
+#ifndef HAS_VSENSE
+#define HAS_VSENSE    0
 #endif
 
 // voltage divider for PIN_VSENSE: Vin -- R1 -- PIN -- R2 -- GND

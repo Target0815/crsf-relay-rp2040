@@ -44,9 +44,10 @@ or use `picotool load -f -x crsf-relay-…uf2`.
 * **Half duplex** (JR bay or external ELRS module): connect only **GP4** to the CRSF/S.Port pin of
   the module and set "Half-Duplex" to "On" in the menu. External modules need their own supply
   (usually 5–8.4 V and, depending on output power, more than 1 A), not the 3.3 V pin of the RP2040-Zero.
-* Voltage measurement: Vin – 33 kΩ – GP29 – 10 kΩ – GND (up to approx. 14 V). Other values via
-  `VSENSE_R1`/`VSENSE_R2` at build time. Without a divider the menu entry shows nonsense, otherwise
-  it does no harm.
+* Voltage measurement (optional, since 1.0.11 only with `HAS_VSENSE=1` at build time): Vin – 33 kΩ –
+  GP29 – 10 kΩ – GND (up to approx. 14 V). Other values via
+  `VSENSE_R1`/`VSENSE_R2` at build time. Without a divider leave `HAS_VSENSE` at 0 (the open pin gives random values);
+  with a divider the voltage is shown in the menu and sent with "Own Telemetry".
 
 ## LED
 
@@ -61,12 +62,12 @@ or use `picotool load -f -x crsf-relay-…uf2`.
 The relay reports itself as `RC-Relay32@205` (205 = 0xCD, its own CRSF address).
 TX module 2 appears at address 206 (0xCE), its receiver at 207 (0xCF).
 
-The first entry, **RP2040 Firmware**, shows the firmware version of this port (e.g. `1.0.10`),
+The first entry, **RP2040 Firmware**, shows the firmware version of this port (e.g. `1.0.11`),
 so the Lua script immediately shows that the RP2040 port is running and which version.
 **Total Retries** counts the parameter requests the relay has repeated since power-up
 (see item 7 under "Differences from the original"); a rising value indicates a weak link behind the relay.
 
-Menu (since 1.0.9): info block (RP2040 Firmware, Watchdog, Total Retries, Supply Volt.,
+Menu (since 1.0.11): info block (RP2040 Firmware, Watchdog, Total Retries, [Supply Volt.],
 Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), **Telemetry** (Off/Forward), Forward Rate,
 ArduPilot (Off/Forward/Tunnel), Half-Duplex, Baudrate (400k/420k/460k/921k/1.87M),
 **Inverted** (Off/On), Own Telemetry.
@@ -97,8 +98,8 @@ New:
 New (from the ToDo list of the original):
 
 * **Watchdog**: number of watchdog resets since power-up (watchdog 500 ms)
-* **Supply Volt.** and **Chip Temp.**: shown in the menu
-* **Own Telemetry**: sends the voltage (CRSF 0x0E) and chip temperature (0x0D) once per second,
+* **Supply Volt.** (only with `HAS_VSENSE=1`) and **Chip Temp.**: shown in the menu
+* **Own Telemetry**: sends the chip temperature (0x0D) and, with `HAS_VSENSE=1`, the voltage (CRSF 0x0E) once per second,
   with the relay address as sensor ID. In EdgeTX they appear as separate sensors and do not
   collide with the aircraft's sensors. Default: off.
 

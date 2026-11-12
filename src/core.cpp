@@ -580,7 +580,9 @@ void buildMenu() {
     p = {}; p.type = Info; p.name = "Watchdog"; p.options = wdgString; add(p);
     // parameter requests repeated by the relay since power-up (idea from the original, SW 20)
     p = {}; p.type = Info; p.name = "Total Retries"; p.options = retryString; add(p);
+#if HAS_VSENSE
     p = {}; p.type = Info; p.name = "Supply Volt."; p.options = voltString; add(p);
+#endif
     p = {}; p.type = Info; p.name = "Chip Temp."; p.options = tempString; add(p);
     p = {}; p.type = Sel; p.name = "LinkStat"; p.options = "Off;Forward;Transform;Tunnel"; p.value = &settings.link_stat_mode; p.max = 3;
     p.cb = [](uint8_t v) { relay::linkStatMode = v; applyTelemetryModes(); return true; }; add(p);
@@ -900,7 +902,7 @@ void ownTelemetry(uint32_t now) {
     lastOwnTelem = now;
     if (!settings.own_telemetry || relay::telemOff) return;
     // source id = own CRSF address (>= 128: EdgeTX shows 0x0E as voltage, not as cells)
-    const float v = hal::supplyVoltage();
+    const float v = HAS_VSENSE ? hal::supplyVoltage() : -1.0f;
     if (v >= 0.0f) {
         Frame f;
         Builder w(f, type::Cells);

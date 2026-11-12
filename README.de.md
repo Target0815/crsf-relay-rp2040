@@ -44,8 +44,10 @@ oder `picotool load -f -x crsf-relay-…uf2` verwenden.
 * **Halbduplex** (JR-Bay- bzw. externes ELRS-Modul): nur **GP4** an den CRSF-/S.Port-Pin des Moduls.
   Im Menü „Half-Duplex“ auf „On“ stellen. Externe Module brauchen ihre eigene Versorgung
   (meist 5–8,4 V und je nach Sendeleistung mehr als 1 A), nicht aus dem 3,3-V-Pin des RP2040-Zero.
-* Spannungsmessung: Vin – 33 kΩ – GP29 – 10 kΩ – GND (bis ca. 14 V). Andere Werte über
-  `VSENSE_R1`/`VSENSE_R2` beim Bauen. Ohne Teiler zeigt der Menüpunkt Unsinn, sonst stört es nicht.
+* Spannungsmessung (optional, seit 1.0.11 nur mit `HAS_VSENSE=1` beim Bauen): Vin – 33 kΩ – GP29 –
+  10 kΩ – GND (bis ca. 14 V). Andere Werte über
+  `VSENSE_R1`/`VSENSE_R2` beim Bauen. Ohne Teiler `HAS_VSENSE` auf 0 lassen (der offene Pin liefert
+  Zufallswerte); mit Teiler erscheint die Spannung im Menü und bei „Own Telemetry“.
 
 ## LED
 
@@ -61,11 +63,11 @@ Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.10`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.0.11`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
-Menü (seit 1.0.9): Info-Block (RP2040 Firmware, Watchdog, Total Retries, Supply Volt.,
+Menü (seit 1.0.11): Info-Block (RP2040 Firmware, Watchdog, Total Retries, [Supply Volt.],
 Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), **Telemetry** (Off/Forward), Forward Rate,
 ArduPilot (Off/Forward/Tunnel), Half-Duplex, Baudrate (400k/420k/460k/921k/1,87M),
 **Inverted** (Off/On), Own Telemetry.
@@ -95,8 +97,8 @@ Neu:
 Neu (aus der ToDo-Liste des Originals):
 
 * **Watchdog**: Anzahl der Watchdog-Resets seit dem Einschalten (Watchdog 500 ms)
-* **Supply Volt.** und **Chip Temp.**: Anzeige im Menü
-* **Own Telemetry**: sendet Spannung (CRSF 0x0E) und Chiptemperatur (0x0D) einmal pro Sekunde
+* **Supply Volt.** (nur mit `HAS_VSENSE=1`) und **Chip Temp.**: Anzeige im Menü
+* **Own Telemetry**: sendet die Chiptemperatur (0x0D) und mit `HAS_VSENSE=1` die Spannung (CRSF 0x0E) einmal pro Sekunde
   mit der Relais-Adresse als Sensor-ID. In EdgeTX erscheinen sie als eigene Sensoren und kollidieren
   nicht mit den Sensoren des Modells. Standard: aus.
 

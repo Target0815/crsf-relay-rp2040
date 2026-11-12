@@ -280,7 +280,7 @@ int main(int argc, char**) {
         const uint32_t serial = (q[0] << 24) | (q[1] << 16) | (q[2] << 8) | q[3];
         const uint32_t hw = (q[4] << 24) | (q[5] << 16) | (q[6] << 8) | q[7];
         CHECK(serial == 1234 && hw == 4);
-        CHECK(q[12] == 13); // number of parameters
+        CHECK(q[12] == 12); // number of parameters (1.0.11: no "Supply Volt." without divider)
         CHECK(drainRelay(now).empty()); // relay disabled before state Run
     }
 
@@ -288,7 +288,7 @@ int main(int argc, char**) {
     std::map<std::string, uint8_t> index;
     {
         int folders = 0, sels = 0;
-        for (uint8_t i = 1; i <= 13; ++i) {
+        for (uint8_t i = 1; i <= 12; ++i) {
             ParamInfo pi;
             const bool ok = readParam(now, i, pi);
             CHECK(ok);
@@ -301,14 +301,14 @@ int main(int argc, char**) {
         CHECK(folders == 0); // 1.0.9: no telemetry folder any more
         CHECK(sels == 7); // LinkStat, Telemetry, ArduPilot, Half-Duplex, Baudrate, Inverted, Own Telemetry
         ParamInfo pi;
-        CHECK(!readParam(now, 14, pi)); // out of range -> no answer
+        CHECK(!readParam(now, 13, pi)); // out of range -> no answer
         // root folder lists its children, without itself
         ParamInfo root;
         CHECK(readParam(now, 0, root));
         CHECK(root.type == 11 && root.rest.back() == 0xff);
         CHECK(root.rest[0] == 1);
         CHECK(index.count("Telemetry forwarding") == 0 && index.count("Battery") == 0);
-        CHECK(index["Telemetry"] == 7 && index["Forward Rate"] == 8 && index["ArduPilot"] == 9);
+        CHECK(index["Telemetry"] == 6 && index["Forward Rate"] == 7 && index["ArduPilot"] == 8);
         // selection layout: options, value, min, max, default, unit
         ParamInfo ls;
         CHECK(readParam(now, index["LinkStat"], ls));
@@ -317,8 +317,8 @@ int main(int argc, char**) {
         CHECK(ls.rest[used] == 2 && ls.rest[used + 2] == 3);
         // info entries
         ParamInfo vi;
-        CHECK(readParam(now, index["Supply Volt."], vi));
-        CHECK(cstr(vi.rest.data(), vi.rest.size()) == "12.34V");
+        CHECK(readParam(now, index["Chip Temp."], vi));
+        CHECK(cstr(vi.rest.data(), vi.rest.size()) == "31.5C");
         // RP2040 hint with firmware version is the first entry
         ParamInfo fw;
         CHECK(readParam(now, 1, fw));
@@ -329,7 +329,8 @@ int main(int argc, char**) {
             CHECK(index.count(n) == 0);
         }
         // info block directly after the firmware entry
-        CHECK(index["Watchdog"] == 2 && index["Total Retries"] == 3 && index["Supply Volt."] == 4 && index["Chip Temp."] == 5);
+        CHECK(index["Watchdog"] == 2 && index["Total Retries"] == 3 && index["Chip Temp."] == 4);
+        CHECK(index.count("Supply Volt.") == 0);
     }
 
     // --- parameter write: baudrate, half duplex, string, address
@@ -629,9 +630,8 @@ int main(int argc, char**) {
         drainHandset();
         core::tick(now += 1000);
         auto h = drainHandset();
-        CHECK(h.size() == 2);
-        CHECK(h[0].type() == type::Cells && h[0].b[3] == 0xCD && ((h[0].b[4] << 8) | h[0].b[5]) == 12340);
-        CHECK(h[1].type() == type::Temp && ((h[1].b[4] << 8) | h[1].b[5]) == 315);
+        CHECK(h.size() == 1); // 1.0.11: without voltage divider only the chip temperature
+        CHECK(h[0].type() == type::Temp && h[0].b[3] == 0xCD && ((h[0].b[4] << 8) | h[0].b[5]) == 315);
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Own Telemetry"], 0}), now);
     }
 
