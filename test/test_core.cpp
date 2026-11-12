@@ -243,7 +243,7 @@ int main(int argc, char**) {
     // --- settings applied at start
     CHECK(stub::baud == 921'600);
     CHECK(!stub::half);
-    CHECK(std::string(core::deviceName()) == "RC-Relay32@205");
+    CHECK(std::string(core::deviceName()) == "RC-Relay RP2040");
 
     // --- parser: garbage, split frames, CRC error, resync
     {
@@ -275,7 +275,7 @@ int main(int argc, char**) {
         CHECK(f.type() == type::Info && f.crcOk());
         CHECK(f.b[3] == addr::Handset && f.b[4] == 0xCD);
         size_t used;
-        CHECK(cstr(&f.b[5], 40, &used) == "RC-Relay32@205");
+        CHECK(cstr(&f.b[5], 40, &used) == "RC-Relay RP2040");
         const uint8_t* q = &f.b[5 + used];
         const uint32_t serial = (q[0] << 24) | (q[1] << 16) | (q[2] << 8) | q[3];
         const uint32_t hw = (q[4] << 24) | (q[5] << 16) | (q[6] << 8) | q[7];
@@ -322,7 +322,7 @@ int main(int argc, char**) {
         // RP2040 hint with firmware version is the first entry
         ParamInfo fw;
         CHECK(readParam(now, 1, fw));
-        CHECK(fw.type == 12 && fw.name == "RP2040 Firmware" && cstr(fw.rest.data(), fw.rest.size()) == FW_VERSION);
+        CHECK(fw.type == 12 && fw.name == "Firmware" && cstr(fw.rest.data(), fw.rest.size()) == FW_VERSION);
         // 1.0.8: removed entries
         for (const char* n : {"Version(HW/SW)", "CRSF Address", "TX Rewrite Address", "RX Rewrite Address",
                               "TX Rewrite Name", "Rewrite Name", "Failsafe", "Telem. Off Dur."}) {
@@ -351,7 +351,7 @@ int main(int argc, char**) {
         CHECK(stub::inverted); // out of range: rejected
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Inverted"], 0}), now);
         CHECK(!stub::inverted);
-        CHECK(std::string(core::deviceName()) == "RC-Relay32@205");
+        CHECK(std::string(core::deviceName()) == "RC-Relay RP2040");
         core::onInputFrame(make(type::ParamWrite, {0xCD, addr::Handset, index["Half-Duplex"], 0}), now);
         drainHandset();
         drainRelay(now, 2);

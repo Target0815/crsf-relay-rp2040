@@ -59,15 +59,16 @@ oder `picotool load -f -x crsf-relay-…uf2` verwenden.
 
 ## Menü (elrsV3.lua)
 
-Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse).
+Das Relais meldet sich als `RC-Relay RP2040` (CRSF-Adresse 205 = 0xCD; bis 1.0.12 hieß es wie das
+Original `RC-Relay32@205`).
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
-Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.12`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+Ganz oben zeigt der Eintrag **Firmware** die Firmware-Version dieses Ports
+(z. B. `1.0.13`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 
-Menü (seit 1.0.11): Info-Block (RP2040 Firmware, Watchdog, Total Retries, [Supply Volt.],
+Menü (seit 1.0.11): Info-Block (Firmware, Watchdog, Total Retries, [Supply Volt.],
 Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), **Telemetry** (Off/Forward), Forward Rate,
 ArduPilot (Off/Forward/Tunnel), Half-Duplex, Baudrate (400k/420k/460k/921k/1,87M),
 **Inverted** (Off/On), Own Telemetry.

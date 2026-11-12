@@ -5,11 +5,17 @@
 #pragma once
 
 #define FW_NAME      "crsf-relay"
-#define FW_VERSION   "1.0.12"
+#define FW_VERSION   "1.0.13"
 
-// shown in elrsV3.lua / TBS Agent as "<DEVICE_TITLE><address>", e.g. RC-Relay32@205
+// 1.0.13: device name in the ELRS Lua script / TBS Agent: "RC-Relay <chip>" (max. 15 characters
+// in EdgeTX). Up to 1.0.12 it was "RC-Relay32@<address>" like the original.
+#if defined(PICO_RP2350) && PICO_RP2350
+#define CHIP_NAME "RP2350"
+#else
+#define CHIP_NAME "RP2040"
+#endif
 #ifndef DEVICE_TITLE
-#define DEVICE_TITLE "RC-Relay32@"
+#define DEVICE_TITLE "RC-Relay " CHIP_NAME
 #endif
 #define HW_VERSION    4u     // 1 WeAct G031, 2 WMG0B1, 3 Nucleo G431, 4 RP2040
 #define SW_VERSION    15u    // functional level of the original firmware

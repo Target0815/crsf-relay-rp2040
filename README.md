@@ -59,15 +59,16 @@ or use `picotool load -f -x crsf-relay-…uf2`.
 
 ## Menu (elrsV3.lua)
 
-The relay reports itself as `RC-Relay32@205` (205 = 0xCD, its own CRSF address).
+The relay reports itself as `RC-Relay RP2040` (CRSF address 205 = 0xCD; up to 1.0.12 the name was
+`RC-Relay32@205` like the original).
 TX module 2 appears at address 206 (0xCE), its receiver at 207 (0xCF).
 
-The first entry, **RP2040 Firmware**, shows the firmware version of this port (e.g. `1.0.12`),
+The first entry, **Firmware**, shows the firmware version of this port (e.g. `1.0.13`),
 so the Lua script immediately shows that the RP2040 port is running and which version.
 **Total Retries** counts the parameter requests the relay has repeated since power-up
 (see item 7 under "Differences from the original"); a rising value indicates a weak link behind the relay.
 
-Menu (since 1.0.11): info block (RP2040 Firmware, Watchdog, Total Retries, [Supply Volt.],
+Menu (since 1.0.11): info block (Firmware, Watchdog, Total Retries, [Supply Volt.],
 Chip Temp.), LinkStat (Off/Forward/Transform/Tunnel), **Telemetry** (Off/Forward), Forward Rate,
 ArduPilot (Off/Forward/Tunnel), Half-Duplex, Baudrate (400k/420k/460k/921k/1.87M),
 **Inverted** (Off/On), Own Telemetry.

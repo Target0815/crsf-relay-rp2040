@@ -527,7 +527,7 @@ char voltString[12] = {};
 char tempString[12] = {};
 
 void updateName() {
-    std::snprintf(devName, sizeof(devName), "%s%u", DEVICE_TITLE, unsigned(settings.address));
+    std::snprintf(devName, sizeof(devName), "%s", DEVICE_TITLE);
 }
 
 enum PType : uint8_t { U8 = 0, Sel = 9, Str = 10, Folder = 11, Info = 12, Command = 13 };
@@ -576,7 +576,7 @@ void buildMenu() {
     p = {}; p.type = Folder; p.name = "root"; add(p);
     // RP2040 port, 1.0.8: info block first; entries not needed for the own use case were removed
     // (version HW/SW, addresses, name rewrite, failsafe, telemetry pause) - see Settings::fixHidden()
-    p = {}; p.type = Info; p.name = "RP2040 Firmware"; p.options = FW_VERSION; add(p);
+    p = {}; p.type = Info; p.name = "Firmware"; p.options = FW_VERSION; add(p);
     p = {}; p.type = Info; p.name = "Watchdog"; p.options = wdgString; add(p);
     // parameter requests repeated by the relay since power-up (idea from the original, SW 20)
     p = {}; p.type = Info; p.name = "Total Retries"; p.options = retryString; add(p);
