@@ -61,7 +61,7 @@ or use `picotool load -f -x crsf-relay-…uf2`.
 The relay reports itself as `RC-Relay32@205` (205 = 0xCD, its own CRSF address).
 TX module 2 appears at address 206 (0xCE), its receiver at 207 (0xCF).
 
-The first entry, **RP2040 Firmware**, shows the firmware version of this port (e.g. `1.0.9`),
+The first entry, **RP2040 Firmware**, shows the firmware version of this port (e.g. `1.0.10`),
 so the Lua script immediately shows that the RP2040 port is running and which version.
 **Total Retries** counts the parameter requests the relay has repeated since power-up
 (see item 7 under "Differences from the original"); a rising value indicates a weak link behind the relay.

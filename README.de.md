@@ -61,7 +61,7 @@ Das Relais meldet sich als `RC-Relay32@205` (205 = 0xCD, die eigene CRSF-Adresse
 Das Sendemodul 2 erscheint unter Adresse 206 (0xCE), dessen Empfänger unter 207 (0xCF).
 
 Ganz oben zeigt der Eintrag **RP2040 Firmware** die Firmware-Version dieses Ports
-(z. B. `1.0.9`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
+(z. B. `1.0.10`). So ist im Lua-Skript sofort zu sehen, dass der RP2040-Port läuft und in
 welcher Version. **Total Retries** zählt die Parameteranfragen, die das Relais seit dem
 Einschalten wiederholt hat (Punkt 7 unter „Unterschiede zum Original“); steigt der Wert, ist die Verbindung hinter dem Relais schwach.
 

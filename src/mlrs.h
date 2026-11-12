@@ -41,7 +41,7 @@ uint8_t fieldCount();   // number of parameters reported to the ELRS Lua script
 void onPing(uint32_t now);
 // parameter protocol for the proxied device; dev = address the Lua script uses (TX rewrite address)
 void paramRead(uint8_t handset, uint8_t dev, uint8_t index, uint8_t chunk);
-void paramWrite(uint8_t index, const uint8_t* data, uint8_t n, uint32_t now);
+void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data, uint8_t n, uint32_t now);
 
 // call periodically; 'linkUp' = relay is sending to the module
 void tick(uint32_t now, bool linkUp);

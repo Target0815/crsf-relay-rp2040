@@ -790,7 +790,7 @@ void analyzeInput(const Frame& f, uint32_t now) {
             setParameterValue(f.b[5], &f.b[6], n);
         } else if (f.size >= 8 && f.b[idx::dest] == relay::txAddr && mlrs::active()) {
             traceRequest(f, true); // 1.0.9: mLRS proxy
-            mlrs::paramWrite(f.b[5], &f.b[6], uint8_t(f.length() - 5), now);
+            mlrs::paramWrite(f.b[idx::src], f.b[idx::dest], f.b[5], &f.b[6], uint8_t(f.length() - 5), now);
         } else {
             traceRequest(f, false);
             relay::forwardPacket(f);

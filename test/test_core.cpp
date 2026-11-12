@@ -838,7 +838,10 @@ int main(int argc, char**) {
         cstr(pm.rest.data(), 60, &used);
         CHECK(pm.rest[used] == 2);
         // save: store, command stays "executing" until the list was reloaded
+        drainHandset();
         core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iSave, 1}), now);
+        h = drainHandset(); // the command entry is pushed back right away (status executing)
+        CHECK(h.size() == 1 && h[0].type() == type::ParamEntry && h[0].b[4] == 0xCE && h[0].b[5] == iSave);
         for (int i = 0; i < 3; ++i) m.step(now);
         CHECK(m.stores == 1);
         drainHandset();
@@ -850,7 +853,10 @@ int main(int argc, char**) {
         CHECK(m.infoRequests == ir + 1);
         drainHandset();
         CHECK(readParam(now, iSave, sv, 0xCE));
-        CHECK(sv.rest[0] == 0);
+        CHECK(sv.rest[0] == 0 && cstr(&sv.rest[2], 20) == "saved");
+        core::onInputFrame(make(type::ParamWrite, {0xCE, addr::Handset, iSave, 6}), now); // lcsQuery
+        h = drainHandset();
+        CHECK(h.size() == 1 && h[0].type() == type::ParamEntry && h[0].b[5] == iSave);
         // without receiver: Rx parameters hidden, RX info "not connected"
         m.rxAvailable = false;
         for (int i = 0; i < 300; ++i) m.step(now); // repeated pings within 3 s of a load do not reload

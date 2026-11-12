@@ -87,6 +87,7 @@ uint8_t nParams = 0;       // parameters of the last complete list
 uint32_t doneAt = 0;
 uint32_t reloadAt = 0;
 bool saving = false;
+bool saved = false;        // last save completed (info text "saved")
 uint32_t saveSince = 0;
 bool rxAvailable = false;
 DevItem devTx, devRx;
@@ -224,7 +225,7 @@ void finish(uint32_t now) {
     st = St::Done;
     doneAt = now;
     buildFields();
-    if (saving) saving = false;
+    if (saving) { saving = false; saved = true; }
     log("# mLRS: %u params loaded\n", nParams);
 }
 
@@ -361,7 +362,7 @@ void serialize(uint8_t id, Buf& c) {
         c.str("Save");
         c.u8(saving ? 2 : 0);   // executing / ready
         c.u8(50);               // poll every 0.5 s
-        c.str(saving ? "saving..." : "");
+        c.str(saving ? "saving..." : (saved ? "saved" : ""));
         break;
     default:
         c.u8(TInfo); c.str("?"); c.str("");
@@ -522,19 +523,23 @@ void paramRead(uint8_t handset, uint8_t dev, uint8_t index, uint8_t chunk) {
     io.toHandset(f);
 }
 
-void paramWrite(uint8_t index, const uint8_t* data, uint8_t n, uint32_t now) {
+void paramWrite(uint8_t handset, uint8_t dev, uint8_t index, const uint8_t* data, uint8_t n, uint32_t now) {
     if (!structured || index == 0 || index > nF || n < 1) return;
     const Field& fl = F[index - 1];
     if (fl.kind == KSave) {
         if (data[0] == 1 && !saving) {        // lcsClick
             sendCmd(mb::ParamStore, nullptr, 0);
             saving = true;
+            saved = false;
             saveSince = now;
             reloadAt = now + SaveReloadMs;
             log("# mLRS: store\n");
         } else if (data[0] == 5) {            // lcsCancel
             saving = false;
         }
+        // like ELRS devices: every command write (click, query, cancel) is answered with the entry,
+        // the Lua script polls with lcsQuery and does not read the field again
+        paramRead(handset, dev, index, 0);
         return;
     }
     if (fl.kind != KParam) return;

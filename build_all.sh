@@ -2,7 +2,7 @@
 # Builds the CRSF relay firmware into dist/
 set -e
 : "${PICO_SDK_PATH:?PICO_SDK_PATH muss auf das Pico SDK (2.x) zeigen}"
-VERSION=1.0.9
+VERSION=1.0.10
 mkdir -p dist
 cmake -G Ninja -B build/rp2040-zero -DPICO_BOARD=waveshare_rp2040_zero -DCMAKE_BUILD_TYPE=Release . >/dev/null
 ninja -C build/rp2040-zero >/dev/null
