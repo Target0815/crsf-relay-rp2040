@@ -33,6 +33,10 @@ Suitable for aircraft, RC cars and boats.
 * a **CRSF receiver** for the radio link, e.g. RadioMaster ER3C-i (ELRS)
 * a **TX module** for the model link: ELRS module (e.g. RadioMaster Bandit Nano) or mLRS TX
   (e.g. MatekSys mR900-30, mLRS v1.4.04 or newer)
+* a **power supply** for the relay, e.g. a BEC with 5 V (receiver, RP2040) and the voltage
+  required by the TX module (here 9 V)
+
+![Example wiring](docs/relay-wiring.en.svg)
 
 ## Installing the firmware
 

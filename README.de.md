@@ -33,6 +33,10 @@ Geeignet für Flugmodelle, RC-Cars und Boote.
 * einen **CRSF-Empfänger** für den Sender-Link, z. B. RadioMaster ER3C-i (ELRS)
 * ein **Sendemodul** für den Modell-Link: ELRS-Modul (z. B. RadioMaster Bandit Nano) oder mLRS-TX
   (z. B. MatekSys mR900-30, ab mLRS v1.4.04)
+* eine **Stromversorgung** für das Relais, z. B. ein BEC mit 5 V (Empfänger, RP2040) und der
+  Spannung, die das Sendemodul braucht (hier 9 V)
+
+![Beispiel-Verkabelung](docs/relay-wiring.de.svg)
 
 ## Firmware aufspielen
 
