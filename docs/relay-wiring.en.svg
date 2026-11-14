@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" width="980" height="560" font-family="DejaVu Sans, Arial, Helvetica, sans-serif" xmlns:c2pa="http://c2pa.org/manifest">
+<defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L10,4 L0,8 z" fill="#6b7280"/></marker><marker id="d" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,4 L0,8 z" fill="#1f2937"/></marker></defs>
+<rect width="980" height="560" fill="#ffffff"/>
+<text x="20" y="32" font-size="18" font-weight="bold" fill="#1f2937">Example setup (half duplex)</text>
+<rect x="12" y="120" width="168" height="110" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="96" y="150" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">Radio</text>
+<text x="96" y="172" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">e.g. RadioMaster TX15</text>
+<text x="96" y="190" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">internal ELRS TX module</text>
+<line x1="150" y1="122" x2="150" y2="95" stroke="#1f2937" stroke-width="3"/>
+<rect x="225" y="80" width="520" height="405" rx="12" fill="#eef6ff" stroke="#7aa7d9" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="485" y="100" font-size="15" font-weight="bold" fill="#2c5d93" text-anchor="middle">Relay</text>
+<rect x="245" y="105" width="140" height="150" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="315.0" y="131" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="middle">Receiver</text>
+<text x="315.0" y="149" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">RadioMaster ER3C-i</text>
+<line x1="265" y1="105" x2="265" y2="83" stroke="#1f2937" stroke-width="3"/>
+<circle cx="385" cy="180" r="3.5" fill="#1f2937"/>
+<text x="377" y="184" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="end">TX</text>
+<circle cx="385" cy="202" r="3.5" fill="#1f2937"/>
+<text x="377" y="206" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="end">RX</text>
+<circle cx="385" cy="224" r="3.5" fill="#1f2937"/>
+<text x="377" y="228" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="end">5V</text>
+<circle cx="385" cy="246" r="3.5" fill="#1f2937"/>
+<text x="377" y="250" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="end">GND</text>
+<rect x="455" y="105" width="120" height="220" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="515.0" y="131" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="middle">RP2040-Zero</text>
+<text x="515.0" y="149" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">Waveshare</text>
+<circle cx="455" cy="180" r="3.5" fill="#1f2937"/>
+<text x="463" y="184" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">GP1</text>
+<circle cx="455" cy="202" r="3.5" fill="#1f2937"/>
+<text x="463" y="206" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">GP0</text>
+<circle cx="455" cy="224" r="3.5" fill="#1f2937"/>
+<text x="463" y="228" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">5V</text>
+<circle cx="455" cy="246" r="3.5" fill="#1f2937"/>
+<text x="463" y="250" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">GND</text>
+<circle cx="575" cy="180" r="3.5" fill="#1f2937"/>
+<text x="567" y="184" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="end">GP4</text>
+<circle cx="575" cy="246" r="3.5" fill="#1f2937"/>
+<text x="567" y="250" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="end">GND</text>
+<text x="515.0" y="310" font-size="9" font-weight="normal" fill="#6b7280" text-anchor="middle">RC-Relay RP2040 firmware</text>
+<polyline points="385,180 455,180" fill="none" stroke="#2e86de" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#d)"/>
+<polyline points="455,202 385,202" fill="none" stroke="#e67e22" stroke-width="2.2" stroke-linejoin="round" marker-end="url(#d)"/>
+<polyline points="385,224 455,224" fill="none" stroke="#d63031" stroke-width="2.2" stroke-linejoin="round"/>
+<polyline points="385,246 455,246" fill="none" stroke="#2d3436" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="615" y="105" width="115" height="220" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="672.5" y="131" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="middle">TX module</text>
+<line x1="712" y1="105" x2="712" y2="83" stroke="#1f2937" stroke-width="3"/>
+<circle cx="615" cy="180" r="3.5" fill="#1f2937"/>
+<text x="623" y="184" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">S</text>
+<circle cx="615" cy="246" r="3.5" fill="#1f2937"/>
+<text x="623" y="250" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">GND</text>
+<circle cx="615" cy="268" r="3.5" fill="#1f2937"/>
+<text x="623" y="272" font-size="11" font-weight="bold" fill="#1f2937" text-anchor="start">VIN</text>
+<polyline points="575,180 615,180" fill="none" stroke="#8e44ad" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="595.0" y="172" font-size="13" font-weight="bold" fill="#8e44ad" text-anchor="middle">↔</text>
+<polyline points="575,246 615,246" fill="none" stroke="#2d3436" stroke-width="2.2" stroke-linejoin="round"/>
+<text x="672.5" y="285" font-size="9" font-weight="normal" fill="#6b7280" text-anchor="middle">e.g.</text>
+<text x="672.5" y="300" font-size="9.5" font-weight="normal" fill="#6b7280" text-anchor="middle">Bandit Nano (ELRS)</text>
+<text x="672.5" y="315" font-size="9.5" font-weight="normal" fill="#6b7280" text-anchor="middle">mR900-30 (mLRS)</text>
+<rect x="380" y="405" width="285" height="60" rx="8" fill="#ffffff" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="525" y="437" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="middle">BEC</text>
+<text x="525" y="454" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">input 3–6S</text>
+<circle cx="407" cy="405" r="3.5" fill="#1f2937"/>
+<text x="407" y="421" font-size="10" font-weight="bold" fill="#d63031" text-anchor="middle">5V</text>
+<circle cx="433" cy="405" r="3.5" fill="#1f2937"/>
+<text x="433" y="421" font-size="10" font-weight="bold" fill="#2d3436" text-anchor="middle">GND</text>
+<circle cx="595" cy="405" r="3.5" fill="#1f2937"/>
+<text x="595" y="421" font-size="10" font-weight="bold" fill="#b9770e" text-anchor="middle">9V</text>
+<circle cx="640" cy="405" r="3.5" fill="#1f2937"/>
+<text x="640" y="421" font-size="10" font-weight="bold" fill="#6b7280" text-anchor="middle">12V</text>
+<text x="640" y="435" font-size="9" font-weight="normal" fill="#6b7280" text-anchor="middle">unused</text>
+<line x1="407" y1="224" x2="407" y2="405" stroke="#d63031" stroke-width="2.2"/>
+<line x1="433" y1="246" x2="433" y2="405" stroke="#2d3436" stroke-width="2.2"/>
+<circle cx="407" cy="224" r="3" fill="#1f2937"/>
+<circle cx="433" cy="246" r="3" fill="#1f2937"/>
+<polyline points="595,405 595,268 615,268" fill="none" stroke="#b9770e" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="20" y="405" width="150" height="60" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="95" y="431" font-size="14" font-weight="bold" fill="#1f2937" text-anchor="middle">Battery</text>
+<text x="95" y="449" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">3–6S LiPo</text>
+<polyline points="170,435.0 380,435.0" fill="none" stroke="#555555" stroke-width="3" stroke-linejoin="round"/>
+<text x="372" y="429.0" font-size="10" font-weight="bold" fill="#1f2937" text-anchor="end">IN</text>
+<line x1="245" y1="512" x2="267" y2="512" stroke="#8e44ad" stroke-width="3"/>
+<text x="273" y="516" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start">signal (JR pin 5 / In)</text>
+<line x1="442" y1="512" x2="464" y2="512" stroke="#d63031" stroke-width="3"/>
+<text x="470" y="516" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start">5 V</text>
+<line x1="513" y1="512" x2="535" y2="512" stroke="#b9770e" stroke-width="3"/>
+<text x="541" y="516" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start">9 V</text>
+<line x1="584" y1="512" x2="606" y2="512" stroke="#2d3436" stroke-width="3"/>
+<text x="612" y="516" font-size="11" font-weight="normal" fill="#1f2937" text-anchor="start">GND (common)</text>
+<text x="245" y="536" font-size="11" font-weight="normal" fill="#6b7280" text-anchor="start">Full duplex: GP4 → RX and GP5 ← TX of the TX module</text>
+<rect x="795" y="120" width="175" height="110" rx="8" fill="#f3f4f6" stroke="#9ca3af" stroke-width="1.5"/>
+<text x="882" y="150" font-size="15" font-weight="bold" fill="#1f2937" text-anchor="middle">Model</text>
+<text x="882" y="172" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">receiver (ELRS or mLRS)</text>
+<text x="882" y="190" font-size="10" font-weight="normal" fill="#6b7280" text-anchor="middle">+ flight controller</text>
+<line x1="820" y1="122" x2="820" y2="95" stroke="#1f2937" stroke-width="3"/>
+<line x1="155" y1="100" x2="260" y2="100" stroke="#6b7280" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#a)"/>
+<text x="207.5" y="90" font-size="12" font-weight="normal" fill="#6b7280" text-anchor="middle"></text>
+<line x1="717" y1="100" x2="815" y2="100" stroke="#6b7280" stroke-width="2" stroke-dasharray="7 6" marker-end="url(#a)"/>
+<text x="766.0" y="90" font-size="12" font-weight="normal" fill="#6b7280" text-anchor="middle"></text>
+<text x="190" y="52" font-size="12" font-weight="bold" fill="#6b7280" text-anchor="middle">radio link</text>
+<text x="190" y="68" font-size="11" font-weight="normal" fill="#6b7280" text-anchor="middle">(ELRS)</text>
+<text x="780" y="52" font-size="12" font-weight="bold" fill="#6b7280" text-anchor="middle">model link</text>
+<text x="780" y="68" font-size="11" font-weight="normal" fill="#6b7280" text-anchor="middle">(ELRS or mLRS)</text>
+<metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo4YzgyOTZkOS1jYjRhLTQyMjgtYWU3YS1jODg0YjUyY2M2MjkAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaOtTvzoeO/5nMNUGFp4/i/IAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDpiM2ViMGQ2ZC0yOWVlLTQ3NTQtYjMyNS1lMjUxNTNmYTNjNjNscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNo4y8QdUrWK8T82GwKvol4PwAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggKt0+rAvYRn5RlQByTlQI/m6iCMKVyNs0JSUBNlzZKZakZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaDG32RmkS6nvZbudbYUgNtsAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIKtjB3aNN/5JWAl+2kB5IqdLl4GOo9dGhap1w75KlRdfZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GSdBZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjhjODI5NmQ5LWNiNGEtNDIyOC1hZTdhLWM4ODRiNTJjYzYyOS9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjg4NjdiMTg0LTczOTItNDU5Zi05OGYxLWZhNDUzZjI3ZGI0M3JjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCAq3T6sC9hGflGVAHJOVAj+bqIIwpXI2zQlJQE2XNkplqJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggDJv6x5OTi1viCE4uhYTEfb8W7XeFt8EeALI6LVE0EiKiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggBJlzk+Gj1wWRkxD03plPCuPEEStVOarv3xtZeGC8yPJ0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQIDsSD+ZCEFTSEKlEnW+2QP51THPWptDfDoqN4FCgPaVYtrnIOBdOd8Wsut6t6q2A5pSOFSDfVWbslAgvIDZVu0=</c2pa:manifest></metadata></svg>
